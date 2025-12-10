@@ -28,6 +28,11 @@ class AppColors {
   static const Color statusAbsent = Color(0xFFef4444); // Red
   static const Color statusLeave = Color(0xFF8b5cf6); // Purple
 
+  // Aliases for backward compatibility
+  static const Color primary = primaryLight;
+  static const Color textPrimary = textPrimaryLight;
+  static const Color cardDark = surfaceDark;
+
   // Gradients
   static const LinearGradient primaryGradientLight = LinearGradient(
     begin: Alignment.topLeft,
