@@ -221,7 +221,7 @@ class _CheckClockHistoryScreenState extends State<CheckClockHistoryScreen> {
                         _loadHistory();
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryBlue,
+                        backgroundColor: AppColors.secondaryLight,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -334,7 +334,7 @@ class _CheckClockHistoryScreenState extends State<CheckClockHistoryScreen> {
                   children: [
                     Icon(
                       Icons.date_range,
-                      color: AppColors.primaryBlue,
+                      color: AppColors.secondaryLight,
                       size: 20,
                     ),
                     const SizedBox(width: 10),
@@ -354,7 +354,7 @@ class _CheckClockHistoryScreenState extends State<CheckClockHistoryScreen> {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryBlue.withOpacity(0.1),
+                      color: AppColors.secondaryLight.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -362,7 +362,7 @@ class _CheckClockHistoryScreenState extends State<CheckClockHistoryScreen> {
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.primaryBlue,
+                        color: AppColors.secondaryLight,
                       ),
                     ),
                   ),
@@ -422,7 +422,7 @@ class _CheckClockHistoryScreenState extends State<CheckClockHistoryScreen> {
             icon: const Icon(Icons.refresh),
             label: const Text('Retry'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryBlue,
+              backgroundColor: AppColors.secondaryLight,
               foregroundColor: Colors.white,
             ),
           ),
@@ -500,7 +500,7 @@ class _CheckClockHistoryScreenState extends State<CheckClockHistoryScreen> {
             width: 70,
             padding: const EdgeInsets.symmetric(vertical: 16),
             decoration: BoxDecoration(
-              color: AppColors.primaryBlue.withOpacity(0.1),
+              color: AppColors.secondaryLight.withOpacity(0.1),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(12),
                 bottomLeft: Radius.circular(12),
@@ -513,7 +513,7 @@ class _CheckClockHistoryScreenState extends State<CheckClockHistoryScreen> {
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primaryBlue,
+                    color: AppColors.secondaryLight,
                   ),
                 ),
                 Text(
@@ -521,7 +521,7 @@ class _CheckClockHistoryScreenState extends State<CheckClockHistoryScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.primaryBlue,
+                    color: AppColors.secondaryLight,
                   ),
                 ),
               ],
