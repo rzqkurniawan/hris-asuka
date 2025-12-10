@@ -134,11 +134,31 @@ class AttendanceController extends Controller
                 )
                 ->get();
 
+            // Month names in Indonesian (moved here to use in empty response)
+            $monthNames = [
+                '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            ];
+            $monthName = $monthNames[$month];
+
+            // If no records found, return empty summary with zeros (200 OK, not 404)
             if ($records->isEmpty()) {
                 return response()->json([
-                    'success' => false,
+                    'success' => true,
                     'message' => 'No attendance records found for the specified period',
-                ], 404);
+                    'data' => [
+                        'month' => (int) $month,
+                        'year' => (int) $year,
+                        'month_name' => $monthName,
+                        'total_days' => 0,
+                        'masuk' => 0,
+                        'terlambat' => 0,
+                        'alpha' => 0,
+                        'izin' => 0,
+                        'sakit' => 0,
+                        'cuti' => 0,
+                    ],
+                ], 200);
             }
 
             // Calculate summary statistics based on description field
@@ -178,14 +198,6 @@ class AttendanceController extends Controller
                 }
                 // Skorsing and Libur are not counted in summary
             }
-
-            // Month names in Indonesian
-            $monthNames = [
-                '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-                'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-            ];
-
-            $monthName = $monthNames[$month];
 
             return response()->json([
                 'success' => true,
