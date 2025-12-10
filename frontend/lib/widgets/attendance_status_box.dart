@@ -314,7 +314,6 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
                         time: _todayStatus?.checkIn?.time ?? '--:--',
                         location: _todayStatus?.checkIn?.location,
                         canAction: _todayStatus?.canCheckIn ?? true,
-                        actionColor: Colors.green,
                         onTap: () => _checkLocationAndProceed('check_in'),
                       ),
                     ),
@@ -325,7 +324,6 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
                         time: _todayStatus?.checkOut?.time ?? '--:--',
                         location: _todayStatus?.checkOut?.location,
                         canAction: _todayStatus?.canCheckOut ?? false,
-                        actionColor: Colors.blue,
                         onTap: () => _checkLocationAndProceed('check_out'),
                       ),
                     ),
@@ -377,10 +375,11 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
     required String time,
     String? location,
     required bool canAction,
-    required Color actionColor,
     required VoidCallback onTap,
   }) {
     final hasTime = time != '--:--';
+    // Color based on status: green if has time, red if no time
+    final statusColor = hasTime ? Colors.green : Colors.red;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -389,7 +388,7 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
         borderRadius: BorderRadius.circular(12),
         border: Border(
           left: BorderSide(
-            color: hasTime ? actionColor : Colors.grey[400]!,
+            color: statusColor,
             width: 4,
           ),
         ),
@@ -410,12 +409,11 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
                       : AppColors.textSecondaryLight,
                 ),
               ),
-              if (hasTime)
-                Icon(
-                  Icons.check_circle,
-                  size: 16,
-                  color: actionColor,
-                ),
+              Icon(
+                hasTime ? Icons.check_circle : Icons.cancel,
+                size: 16,
+                color: statusColor,
+              ),
             ],
           ),
           const SizedBox(height: 5),
@@ -424,9 +422,7 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: hasTime
-                  ? actionColor
-                  : (widget.isDarkMode ? Colors.grey[500] : Colors.grey[400]),
+              color: statusColor,
             ),
           ),
           if (location != null && hasTime) ...[
@@ -448,7 +444,7 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
             child: ElevatedButton(
               onPressed: canAction && !_isCheckingLocation ? onTap : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: actionColor,
+                backgroundColor: statusColor,
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: Colors.grey[300],
                 disabledForegroundColor: Colors.grey[500],
