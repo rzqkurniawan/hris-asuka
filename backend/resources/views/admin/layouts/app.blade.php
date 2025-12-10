@@ -34,6 +34,9 @@
                     <a href="{{ route('admin.attendance-locations.index') }}" class="{{ request()->routeIs('admin.attendance-locations*') ? 'active' : '' }}">
                         <i class="bi bi-geo-alt-fill"></i> Lokasi Absensi
                     </a>
+                    <a href="{{ route('admin.attendance-records.index') }}" class="{{ request()->routeIs('admin.attendance-records*') ? 'active' : '' }}">
+                        <i class="bi bi-clock-history"></i> Check Clock History
+                    </a>
                     <hr class="text-white">
                     <form action="{{ route('admin.logout') }}" method="POST" class="m-0">
                         @csrf
