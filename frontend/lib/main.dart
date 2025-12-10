@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'providers/theme_provider.dart';
 import 'providers/auth_provider.dart';
 import 'theme/app_theme_old.dart';
@@ -11,8 +12,11 @@ import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/main_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize locale data for date formatting
+  await initializeDateFormatting('id_ID', null);
 
   // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
