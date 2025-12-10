@@ -232,13 +232,13 @@ class _HomePageState extends State<HomePage> {
           padding: EdgeInsets.all(8.w),
           decoration: BoxDecoration(
             color: isDarkMode
-                ? const Color(0xFF0EA5E9).withOpacity(0.2)
-                : const Color(0xFF0EA5E9).withOpacity(0.1),
+                ? AppColors.accent.withOpacity(0.2)
+                : AppColors.accent.withOpacity(0.1),
             borderRadius: BorderRadius.circular(10.r),
           ),
           child: Icon(
             icon,
-            color: const Color(0xFF0EA5E9),
+            color: AppColors.accent,
             size: 18.sp,
           ),
         ),
@@ -270,7 +270,7 @@ class _HomePageState extends State<HomePage> {
             height: 24.w,
             child: CircularProgressIndicator(
               strokeWidth: 2,
-              color: const Color(0xFF0EA5E9),
+              color: AppColors.accent,
             ),
           ),
         ),
@@ -286,7 +286,7 @@ class _HomePageState extends State<HomePage> {
             color: isDarkMode ? AppColors.surfaceAltDark : Colors.white,
             borderRadius: BorderRadius.circular(16.r),
             border: Border.all(
-              color: const Color(0xFFEF4444).withOpacity(0.3),
+              color: AppColors.statusAbsent.withOpacity(0.3),
             ),
           ),
           child: Center(
@@ -295,7 +295,7 @@ class _HomePageState extends State<HomePage> {
               children: [
                 Icon(
                   Icons.refresh_rounded,
-                  color: const Color(0xFFEF4444),
+                  color: AppColors.statusAbsent,
                   size: 24.sp,
                 ),
                 SizedBox(height: 8.h),

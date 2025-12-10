@@ -95,7 +95,7 @@ class _MainScreenState extends State<MainScreen> {
               decoration: BoxDecoration(
                 color: isDarkMode
                     ? AppColors.surfaceAltDark
-                    : const Color(0xFF0EA5E9).withOpacity(0.1),
+                    : AppColors.accent.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12.r),
               ),
               child: ClipRRect(
@@ -128,7 +128,7 @@ class _MainScreenState extends State<MainScreen> {
             decoration: BoxDecoration(
               color: isDarkMode
                   ? AppColors.surfaceAltDark
-                  : const Color(0xFF0EA5E9).withOpacity(0.1),
+                  : AppColors.accent.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12.r),
             ),
             child: IconButton(
@@ -151,8 +151,8 @@ class _MainScreenState extends State<MainScreen> {
                   isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
                   key: ValueKey(isDarkMode),
                   color: isDarkMode
-                      ? const Color(0xFFFBBF24)
-                      : const Color(0xFF0EA5E9),
+                      ? AppColors.timeMorning
+                      : AppColors.accent,
                   size: 22.sp,
                 ),
               ),

@@ -11,6 +11,7 @@ class AppColors {
   static const Color accentLight = Color(0xFFfca5a5); // Coral
   static const Color mutedLight = Color(0xFFe0f2fe); // Sky Light
   static const Color textSecondaryLight = Color(0xFF64748b); // Slate Gray
+  static const Color borderLight = Color(0xFFCBD5E1); // Light border
 
   // Dark Mode Colors
   static const Color primaryDark = Color(0xFF0ea5e9); // Bright Cyan
@@ -21,12 +22,29 @@ class AppColors {
   static const Color surfaceAltDark = Color(0xFF1e293b); // Slate
   static const Color textPrimaryDark = Color(0xFFf1f5f9); // Ghost White
   static const Color textSecondaryDark = Color(0xFF94a3b8); // Steel Gray
+  static const Color borderDark = Color(0xFF334155); // Dark border
 
-  // Status Colors
-  static const Color statusWork = Color(0xFF10b981); // Green
-  static const Color statusLate = Color(0xFFf59e0b); // Orange
-  static const Color statusAbsent = Color(0xFFef4444); // Red
-  static const Color statusLeave = Color(0xFF8b5cf6); // Purple
+  // Accent Color (shared)
+  static const Color accent = Color(0xFF0EA5E9); // Cyan Blue - main accent
+
+  // Status Colors (used in both modes)
+  static const Color statusWork = Color(0xFF10b981); // Green - Present/Working
+  static const Color statusLate = Color(0xFFf59e0b); // Orange/Amber - Late
+  static const Color statusAbsent = Color(0xFFef4444); // Red - Absent
+  static const Color statusLeave = Color(0xFF8b5cf6); // Purple - Leave/Cuti
+  static const Color statusSick = Color(0xFFEC4899); // Pink - Sick
+  static const Color statusPermission = Color(0xFF6366F1); // Indigo - Permission
+
+  // Time-based colors (for greeting icons)
+  static const Color timeNight = Color(0xFF6366F1); // Indigo for night
+  static const Color timeMorning = Color(0xFFF59E0B); // Amber for morning
+  static const Color timeAfternoon = Color(0xFFEF4444); // Red/Orange for afternoon
+
+  // Gradient colors for header
+  static const Color headerGradientStartLight = Color(0xFF0EA5E9);
+  static const Color headerGradientEndLight = Color(0xFF0284C7);
+  static const Color headerGradientStartDark = Color(0xFF1E3A5F);
+  static const Color headerGradientEndDark = Color(0xFF0F172A);
 
   // Aliases for backward compatibility
   static const Color primary = primaryLight;

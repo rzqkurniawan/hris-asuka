@@ -159,56 +159,56 @@ class EmptyStateWidget extends StatelessWidget {
           icon: Icons.inbox_rounded,
           title: 'Tidak Ada Data',
           message: 'Data yang Anda cari tidak tersedia saat ini.',
-          color: const Color(0xFF64748B),
+          color: AppColors.textSecondaryLight,
         );
       case EmptyStateType.noResults:
         return _EmptyStateData(
           icon: Icons.search_off_rounded,
           title: 'Tidak Ditemukan',
           message: 'Pencarian Anda tidak menemukan hasil. Coba gunakan kata kunci lain.',
-          color: const Color(0xFF0EA5E9),
+          color: AppColors.accent,
         );
       case EmptyStateType.noConnection:
         return _EmptyStateData(
           icon: Icons.wifi_off_rounded,
           title: 'Tidak Ada Koneksi',
           message: 'Periksa koneksi internet Anda dan coba lagi.',
-          color: const Color(0xFFF59E0B),
+          color: AppColors.statusLate,
         );
       case EmptyStateType.error:
         return _EmptyStateData(
           icon: Icons.error_outline_rounded,
           title: 'Terjadi Kesalahan',
           message: 'Maaf, terjadi kesalahan. Silakan coba lagi nanti.',
-          color: const Color(0xFFEF4444),
+          color: AppColors.statusAbsent,
         );
       case EmptyStateType.noAttendance:
         return _EmptyStateData(
           icon: Icons.fingerprint_rounded,
           title: 'Belum Ada Absensi',
           message: 'Anda belum melakukan absensi hari ini. Tap tombol di bawah untuk absen.',
-          color: const Color(0xFF10B981),
+          color: AppColors.statusWork,
         );
       case EmptyStateType.noLeave:
         return _EmptyStateData(
           icon: Icons.beach_access_rounded,
           title: 'Tidak Ada Cuti',
           message: 'Anda belum memiliki pengajuan cuti. Ajukan cuti baru jika diperlukan.',
-          color: const Color(0xFF8B5CF6),
+          color: AppColors.statusLeave,
         );
       case EmptyStateType.noOvertime:
         return _EmptyStateData(
           icon: Icons.access_time_rounded,
           title: 'Tidak Ada Lembur',
           message: 'Belum ada catatan lembur. Lembur akan muncul setelah disetujui.',
-          color: const Color(0xFFEC4899),
+          color: AppColors.statusSick,
         );
       case EmptyStateType.noHistory:
         return _EmptyStateData(
           icon: Icons.history_rounded,
           title: 'Tidak Ada Riwayat',
           message: 'Riwayat Anda masih kosong. Data akan muncul setelah ada aktivitas.',
-          color: const Color(0xFF6366F1),
+          color: AppColors.statusPermission,
         );
     }
   }
@@ -252,11 +252,11 @@ class ErrorStateWidget extends StatelessWidget {
           padding: EdgeInsets.all(24.w),
           decoration: BoxDecoration(
             color: isDarkMode
-                ? const Color(0xFFEF4444).withOpacity(0.1)
+                ? AppColors.statusAbsent.withOpacity(0.1)
                 : const Color(0xFFFEE2E2),
             borderRadius: BorderRadius.circular(24.r),
             border: Border.all(
-              color: const Color(0xFFEF4444).withOpacity(0.3),
+              color: AppColors.statusAbsent.withOpacity(0.3),
               width: 1,
             ),
           ),
@@ -268,12 +268,12 @@ class ErrorStateWidget extends StatelessWidget {
                 width: 80.w,
                 height: 80.w,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEF4444).withOpacity(0.2),
+                  color: AppColors.statusAbsent.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   Icons.warning_amber_rounded,
-                  color: const Color(0xFFEF4444),
+                  color: AppColors.statusAbsent,
                   size: 40.sp,
                 ),
               )
@@ -288,7 +288,7 @@ class ErrorStateWidget extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 18.sp,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFFEF4444),
+                  color: AppColors.statusAbsent,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -313,8 +313,8 @@ class ErrorStateWidget extends StatelessWidget {
                 OutlinedButton.icon(
                   onPressed: onRetry,
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFFEF4444),
-                    side: const BorderSide(color: Color(0xFFEF4444)),
+                    foregroundColor: AppColors.statusAbsent,
+                    side: BorderSide(color: AppColors.statusAbsent),
                     padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12.r),

@@ -52,11 +52,11 @@ class GreetingHeader extends StatelessWidget {
   Color _getGreetingIconColor() {
     final hour = DateTime.now().hour;
     if (hour < 6 || hour >= 18) {
-      return const Color(0xFF6366F1); // Indigo for night
+      return AppColors.timeNight; // Indigo for night
     } else if (hour < 12) {
-      return const Color(0xFFF59E0B); // Amber for morning
+      return AppColors.timeMorning; // Amber for morning
     } else {
-      return const Color(0xFFEF4444); // Red/Orange for afternoon
+      return AppColors.timeAfternoon; // Red/Orange for afternoon
     }
   }
 
@@ -77,18 +77,18 @@ class GreetingHeader extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: isDarkMode
               ? [
-                  const Color(0xFF1E3A5F),
-                  const Color(0xFF0F172A),
+                  AppColors.headerGradientStartDark,
+                  AppColors.headerGradientEndDark,
                 ]
               : [
-                  const Color(0xFF0EA5E9),
-                  const Color(0xFF0284C7),
+                  AppColors.headerGradientStartLight,
+                  AppColors.headerGradientEndLight,
                 ],
         ),
         borderRadius: BorderRadius.circular(24.r),
         boxShadow: [
           BoxShadow(
-            color: (isDarkMode ? const Color(0xFF0EA5E9) : const Color(0xFF0284C7))
+            color: (isDarkMode ? AppColors.accent : AppColors.headerGradientEndLight)
                 .withOpacity(0.3),
             blurRadius: 20,
             offset: const Offset(0, 8),
