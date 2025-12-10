@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'dart:async';
 import '../providers/auth_provider.dart';
-import 'main_screen.dart';
-import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -17,7 +15,6 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    print('SplashScreen: initState');
     _checkAuthAndNavigate();
   }
 
@@ -48,23 +45,18 @@ class _SplashScreenState extends State<SplashScreen> {
     if (authProvider.isAuthenticated) {
       // User is already logged in, go to main screen
       print('→ Going to /main');
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const MainScreen()),
-      );
+      Navigator.of(context).pushReplacementNamed('/main');
     } else {
       // User not logged in, go to login screen
       print('→ Going to /login');
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
+      Navigator.of(context).pushReplacementNamed('/login');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    print('SplashScreen: build (isDark: $isDark)');
-
+    
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -92,7 +84,9 @@ class _SplashScreenState extends State<SplashScreen> {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                color: isDark
+                    ? const Color(0xFF0F172A)
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(
                   color: isDark
@@ -120,20 +114,26 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                 ),
               ),
-            ),
-
+            )
+                .animate()
+                .fadeIn(duration: 600.ms, curve: Curves.easeOut)
+                .scale(begin: const Offset(0.8, 0.8), curve: Curves.easeOut),
+            
             const SizedBox(height: 24),
-
+            
             // App Title
             Text(
               'HRIS Asuka',
               style: Theme.of(context).textTheme.displaySmall?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
-            ),
-
+            )
+                .animate(delay: 200.ms)
+                .fadeIn(duration: 600.ms)
+                .slideY(begin: 0.3, end: 0),
+            
             const SizedBox(height: 6),
-
+            
             // Subtitle
             Text(
               'Human Resource Information System',
@@ -142,10 +142,13 @@ class _SplashScreenState extends State<SplashScreen> {
                         ? const Color(0xFF94A3B8)
                         : const Color(0xFF0369A1),
                   ),
-            ),
-
+            )
+                .animate(delay: 400.ms)
+                .fadeIn(duration: 600.ms)
+                .slideY(begin: 0.3, end: 0),
+            
             const SizedBox(height: 80),
-
+            
             // Loading Bar
             SizedBox(
               width: 160,
@@ -176,7 +179,9 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                 ],
               ),
-            ),
+            )
+                .animate(delay: 600.ms)
+                .fadeIn(duration: 600.ms),
           ],
         ),
       ),

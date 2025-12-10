@@ -55,10 +55,17 @@
                     </div>
 
                     <div class="mb-3">
-                        <button type="button" class="btn btn-outline-info btn-sm" onclick="getCurrentLocation()">
-                            <i class="bi bi-crosshair"></i> Gunakan Lokasi Saya
-                        </button>
-                        <small class="text-muted ms-2">Atau cari di Google Maps dan salin koordinat</small>
+                        <div class="input-group">
+                            <input type="text" id="searchLocation" class="form-control" placeholder="Cari lokasi (contoh: Monas Jakarta)">
+                            <button type="button" class="btn btn-outline-info" onclick="searchLocation()">
+                                <i class="bi bi-search"></i> Cari
+                            </button>
+                        </div>
+                        <small class="text-muted">Cari lokasi atau klik langsung pada peta untuk mendapatkan koordinat</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <div id="map" style="height: 300px; border-radius: 8px; border: 1px solid #dee2e6;"></div>
                     </div>
 
                     <div class="mb-3">
@@ -115,22 +122,101 @@
 @endsection
 
 @push('scripts')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-function getCurrentLocation() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            function(position) {
-                document.getElementById('latitude').value = position.coords.latitude.toFixed(8);
-                document.getElementById('longitude').value = position.coords.longitude.toFixed(8);
-            },
-            function(error) {
-                alert('Gagal mendapatkan lokasi: ' + error.message);
-            },
-            { enableHighAccuracy: true }
-        );
-    } else {
-        alert('Browser tidak mendukung geolocation');
+let map, marker, circle;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Default center (Jakarta)
+    const defaultLat = -6.2088;
+    const defaultLng = 106.8456;
+
+    // Initialize map
+    map = L.map('map').setView([defaultLat, defaultLng], 13);
+
+    // Add OpenStreetMap tiles
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    // Add marker
+    marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(map);
+
+    // Add radius circle
+    const radius = document.querySelector('input[name="radius_meters"]').value || 100;
+    circle = L.circle([defaultLat, defaultLng], { radius: parseInt(radius), color: 'blue', fillOpacity: 0.2 }).addTo(map);
+
+    // Update coordinates when marker is dragged
+    marker.on('dragend', function(e) {
+        const pos = e.target.getLatLng();
+        updateCoordinates(pos.lat, pos.lng);
+    });
+
+    // Click on map to set location
+    map.on('click', function(e) {
+        updateCoordinates(e.latlng.lat, e.latlng.lng);
+    });
+
+    // Update circle when radius changes
+    document.querySelector('input[name="radius_meters"]').addEventListener('change', function() {
+        circle.setRadius(parseInt(this.value) || 100);
+    });
+
+    // Update map when coordinates are manually changed
+    document.getElementById('latitude').addEventListener('change', updateMapFromInputs);
+    document.getElementById('longitude').addEventListener('change', updateMapFromInputs);
+});
+
+function updateCoordinates(lat, lng) {
+    document.getElementById('latitude').value = lat.toFixed(8);
+    document.getElementById('longitude').value = lng.toFixed(8);
+    marker.setLatLng([lat, lng]);
+    circle.setLatLng([lat, lng]);
+    map.panTo([lat, lng]);
+}
+
+function updateMapFromInputs() {
+    const lat = parseFloat(document.getElementById('latitude').value);
+    const lng = parseFloat(document.getElementById('longitude').value);
+    if (!isNaN(lat) && !isNaN(lng)) {
+        marker.setLatLng([lat, lng]);
+        circle.setLatLng([lat, lng]);
+        map.panTo([lat, lng]);
     }
 }
+
+function searchLocation() {
+    const query = document.getElementById('searchLocation').value;
+    if (!query) {
+        alert('Masukkan nama lokasi untuk dicari');
+        return;
+    }
+
+    // Use Nominatim (OpenStreetMap) for geocoding
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.length > 0) {
+                const lat = parseFloat(data[0].lat);
+                const lng = parseFloat(data[0].lon);
+                updateCoordinates(lat, lng);
+                map.setZoom(16);
+            } else {
+                alert('Lokasi tidak ditemukan. Coba kata kunci lain.');
+            }
+        })
+        .catch(error => {
+            alert('Gagal mencari lokasi: ' + error.message);
+        });
+}
+
+// Allow search on Enter key
+document.getElementById('searchLocation')?.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        searchLocation();
+    }
+});
 </script>
 @endpush
