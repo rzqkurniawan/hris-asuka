@@ -12,6 +12,7 @@ import 'overtime_list_screen.dart';
 import 'employee_leave_list_screen.dart';
 import 'pay_slip_screen.dart';
 import 'attendance_summary_page.dart';
+import 'mobile_attendance_screen.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -62,6 +63,19 @@ class HomePage extends StatelessWidget {
               MenuGrid(
                 items: [
                   MenuGridItem(
+                    icon: Icons.fingerprint,
+                    label: 'Absensi\n',
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.push(
+                        context,
+                        SlideRightRoute(
+                          page: const MobileAttendanceScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  MenuGridItem(
                     icon: Icons.access_time_filled,
                     label: 'Overtime\nOrders',
                     onTap: () {
@@ -103,7 +117,7 @@ class HomePage extends StatelessWidget {
                   ),
                   MenuGridItem(
                     icon: Icons.assignment_turned_in,
-                    label: 'Attendance',
+                    label: 'Attendance\nHistory',
                     onTap: () {
                       HapticFeedback.lightImpact();
                       Navigator.push(

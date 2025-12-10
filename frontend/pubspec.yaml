@@ -44,6 +44,20 @@ dependencies:
   # Icons
   cupertino_icons: ^1.0.6
 
+  # Location & GPS
+  geolocator: ^11.0.0
+  geocoding: ^3.0.0
+
+  # Camera & Image
+  camera: ^0.10.5+9
+  image: ^4.1.7
+
+  # Face Recognition (ML Kit)
+  google_mlkit_face_detection: ^0.10.0
+
+  # Permission Handler
+  permission_handler: ^11.2.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

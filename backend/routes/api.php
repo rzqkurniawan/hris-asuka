@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\EmployeePhotoController;
 use App\Http\Controllers\Api\OvertimeController;
 use App\Http\Controllers\Api\PaySlipController;
 use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\MobileAttendanceController;
 use App\Http\Controllers\Api\EmployeeLeaveController;
 
 /*
@@ -79,11 +80,21 @@ Route::middleware('auth:api')->group(function () {
         Route::delete('/{id}', [EmployeeLeaveController::class, 'deleteEmployeeLeave']);
     });
 
-    // Attendance routes
+    // Attendance routes (history from c3ais)
     Route::prefix('attendance')->group(function () {
         Route::get('/periods', [AttendanceController::class, 'getAvailablePeriods']);
         Route::get('/summary', [AttendanceController::class, 'getAttendanceSummary']);
         Route::get('/detail', [AttendanceController::class, 'getAttendanceDetail']);
+    });
+
+    // Mobile Attendance routes (check-in/check-out with GPS & Face Recognition)
+    Route::prefix('mobile-attendance')->group(function () {
+        Route::get('/locations', [MobileAttendanceController::class, 'getLocations']);
+        Route::get('/today-status', [MobileAttendanceController::class, 'getTodayStatus']);
+        Route::post('/validate-location', [MobileAttendanceController::class, 'validateLocation']);
+        Route::get('/employee-avatar', [MobileAttendanceController::class, 'getEmployeeAvatar']);
+        Route::post('/submit', [MobileAttendanceController::class, 'submitAttendance']);
+        Route::get('/history', [MobileAttendanceController::class, 'getHistory']);
     });
 
     // Payslip routes

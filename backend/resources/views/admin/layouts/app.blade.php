@@ -14,6 +14,7 @@
         .main-content { padding: 20px; }
         .stat-card { border-left: 4px solid #0d6efd; }
     </style>
+    @stack('styles')
 </head>
 <body>
     <div class="container-fluid">
@@ -29,6 +30,9 @@
                     </a>
                     <a href="{{ route('admin.users') }}" class="{{ request()->routeIs('admin.users*') ? 'active' : '' }}">
                         <i class="bi bi-people-fill"></i> Users
+                    </a>
+                    <a href="{{ route('admin.attendance-locations.index') }}" class="{{ request()->routeIs('admin.attendance-locations*') ? 'active' : '' }}">
+                        <i class="bi bi-geo-alt-fill"></i> Lokasi Absensi
                     </a>
                     <hr class="text-white">
                     <form action="{{ route('admin.logout') }}" method="POST" class="m-0">

@@ -22,8 +22,11 @@ class ApiConfig {
   // Leave Endpoints (future implementation)
   static const String leave = '/leave';
 
-  // Attendance Endpoints (future implementation)
+  // Attendance Endpoints (history from c3ais)
   static const String attendance = '/attendance';
+
+  // Mobile Attendance Endpoints (check-in/check-out with GPS & Face Recognition)
+  static const String mobileAttendance = '/mobile-attendance';
 
   // Payslip Endpoints (future implementation)
   static const String payslip = '/payslip';
