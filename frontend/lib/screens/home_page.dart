@@ -12,7 +12,6 @@ import 'overtime_list_screen.dart';
 import 'employee_leave_list_screen.dart';
 import 'pay_slip_screen.dart';
 import 'attendance_summary_page.dart';
-import 'mobile_attendance_screen.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -50,31 +49,15 @@ class HomePage extends StatelessWidget {
                   ),
               const SizedBox(height: 20),
 
-              // Attendance Status Box
+              // Attendance Status Box with integrated Check In/Out buttons
               AttendanceStatusBox(
-                checkInTime: '08:00 AM',
-                checkOutTime: '17:00 PM',
-                status: AttendanceStatus.work,
                 isDarkMode: isDarkMode,
               ),
               const SizedBox(height: 20),
 
-              // Menu Grid
+              // Menu Grid - 4 items (without separate Absensi card)
               MenuGrid(
                 items: [
-                  MenuGridItem(
-                    icon: Icons.fingerprint,
-                    label: 'Absensi\n',
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      Navigator.push(
-                        context,
-                        SlideRightRoute(
-                          page: const MobileAttendanceScreen(),
-                        ),
-                      );
-                    },
-                  ),
                   MenuGridItem(
                     icon: Icons.access_time_filled,
                     label: 'Overtime\nOrders',
