@@ -58,13 +58,13 @@ class MobileAttendanceController extends Controller
                     'can_check_in' => !$checkIn,
                     'can_check_out' => $checkIn && !$checkOut,
                     'check_in' => $checkIn ? [
-                        'time' => $checkIn->created_at->format('H:i:s'),
+                        'time' => $checkIn->created_at->toIso8601String(),
                         'location' => $checkIn->location->name ?? '-',
                         'location_verified' => $checkIn->location_verified,
                         'face_verified' => $checkIn->face_verified,
                     ] : null,
                     'check_out' => $checkOut ? [
-                        'time' => $checkOut->created_at->format('H:i:s'),
+                        'time' => $checkOut->created_at->toIso8601String(),
                         'location' => $checkOut->location->name ?? '-',
                         'location_verified' => $checkOut->location_verified,
                         'face_verified' => $checkOut->face_verified,
@@ -290,7 +290,7 @@ class MobileAttendanceController extends Controller
                 'data' => [
                     'id' => $attendance->id,
                     'check_type' => $attendance->check_type,
-                    'time' => $attendance->created_at->format('H:i:s'),
+                    'time' => $attendance->created_at->toIso8601String(),
                     'location' => $location->name,
                     'location_verified' => $attendance->location_verified,
                     'face_verified' => $attendance->face_verified,
@@ -358,7 +358,7 @@ class MobileAttendanceController extends Controller
                 }
 
                 $recordData = [
-                    'time' => $record->created_at->format('H:i:s'),
+                    'time' => $record->created_at->toIso8601String(),
                     'location' => $record->location->name ?? '-',
                     'location_verified' => $record->location_verified,
                     'face_verified' => $record->face_verified,

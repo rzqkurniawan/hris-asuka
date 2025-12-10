@@ -222,21 +222,40 @@ class TodayAttendanceStatus {
 
 /// Attendance Check Data (for check_in/check_out details)
 class AttendanceCheckData {
-  final String time;
+  final String time; // Formatted local time string (HH:mm:ss)
+  final DateTime? dateTime; // Original DateTime for further processing
   final String location;
   final bool locationVerified;
   final bool faceVerified;
 
   AttendanceCheckData({
     required this.time,
+    this.dateTime,
     required this.location,
     required this.locationVerified,
     required this.faceVerified,
   });
 
   factory AttendanceCheckData.fromJson(Map<String, dynamic> json) {
+    final timeStr = json['time'] as String;
+    DateTime? parsedDateTime;
+    String formattedTime = timeStr;
+
+    // Try to parse ISO8601 format and convert to device local time
+    try {
+      parsedDateTime = DateTime.parse(timeStr);
+      // Convert to local timezone
+      final localTime = parsedDateTime.toLocal();
+      // Format as HH:mm:ss
+      formattedTime = '${localTime.hour.toString().padLeft(2, '0')}:${localTime.minute.toString().padLeft(2, '0')}:${localTime.second.toString().padLeft(2, '0')}';
+    } catch (e) {
+      // If parsing fails, use original string (might already be HH:mm:ss format)
+      formattedTime = timeStr;
+    }
+
     return AttendanceCheckData(
-      time: json['time'] as String,
+      time: formattedTime,
+      dateTime: parsedDateTime?.toLocal(),
       location: json['location'] as String,
       locationVerified: json['location_verified'] as bool,
       faceVerified: json['face_verified'] as bool,
