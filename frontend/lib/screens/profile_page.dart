@@ -13,6 +13,8 @@ import 'position_history_screen.dart';
 import 'training_history_screen.dart';
 import 'work_experience_screen.dart';
 import 'educational_history_screen.dart';
+import 'attendance_summary_page.dart';
+import 'check_clock_history_screen.dart';
 
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -65,6 +67,20 @@ class ProfilePage extends StatelessWidget {
               ProfileMenuList(
                 isDarkMode: isDarkMode,
                 items: [
+                  ProfileMenuItem(
+                    icon: Icons.access_time,
+                    title: 'Check Clock History',
+                    subtitle: 'Attendance records',
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.push(
+                        context,
+                        SlideRightRoute(
+                          page: const CheckClockHistoryScreen(),
+                        ),
+                      );
+                    },
+                  ),
                   ProfileMenuItem(
                     icon: Icons.badge,
                     title: 'Employee Data',
