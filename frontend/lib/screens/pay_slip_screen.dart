@@ -687,20 +687,18 @@ class _PaySlipScreenState extends State<PaySlipScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isDarkMode
-                  ? Colors.red.withOpacity(0.1)
-                  : Colors.red.withOpacity(0.1),
+              color: AppColors.error.withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
+                Text(
                   'Total Potongan',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.red,
+                    color: isDarkMode ? AppColors.dangerDark : AppColors.dangerLight,
                   ),
                 ),
                 Text(
@@ -708,7 +706,7 @@ class _PaySlipScreenState extends State<PaySlipScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.red[700],
+                    color: isDarkMode ? AppColors.dangerDark : AppColors.dangerLight,
                   ),
                 ),
               ],
@@ -727,7 +725,7 @@ class _PaySlipScreenState extends State<PaySlipScreen> {
         gradient: LinearGradient(
           colors: isDarkMode
               ? [AppColors.primaryDark, AppColors.secondaryDark]
-              : [const Color(0xFF082f49), const Color(0xFF0c4a6e)],
+              : [AppColors.primaryLight, const Color(0xFF082f49)],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [

@@ -94,7 +94,7 @@ class _EducationalHistoryScreenState extends State<EducationalHistoryScreen> {
                         Icon(
                           Icons.error_outline,
                           size: 64,
-                          color: Colors.red,
+                          color: isDarkMode ? AppColors.dangerDark : AppColors.dangerLight,
                         ),
                         const SizedBox(height: 16),
                         Text(
@@ -127,7 +127,7 @@ class _EducationalHistoryScreenState extends State<EducationalHistoryScreen> {
                             backgroundColor: isDarkMode
                                 ? AppColors.primaryDark
                                 : AppColors.primaryLight,
-                            foregroundColor: Colors.white,
+                            foregroundColor: AppColors.overlayLight,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 24,
                               vertical: 12,
@@ -192,7 +192,7 @@ class _EducationalHistoryScreenState extends State<EducationalHistoryScreen> {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
+                                  color: AppColors.overlayDark.withOpacity(0.2),
                                   blurRadius: 12,
                                   offset: const Offset(0, 4),
                                 ),
@@ -203,12 +203,12 @@ class _EducationalHistoryScreenState extends State<EducationalHistoryScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
+                                    color: AppColors.overlayLight.withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.school,
-                                    color: Colors.white,
+                                    color: AppColors.overlayLight,
                                     size: 28,
                                   ),
                                 ),
@@ -218,20 +218,20 @@ class _EducationalHistoryScreenState extends State<EducationalHistoryScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      const Text(
+                                      Text(
                                         'Education Levels',
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: Colors.white,
+                                          color: AppColors.overlayLight,
                                         ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
                                         '${_educationHistory!.educationCount} Completed',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontSize: 24,
                                           fontWeight: FontWeight.bold,
-                                          color: Colors.white,
+                                          color: AppColors.overlayLight,
                                         ),
                                       ),
                                     ],
@@ -283,8 +283,8 @@ class _EducationalHistoryScreenState extends State<EducationalHistoryScreen> {
             boxShadow: [
               BoxShadow(
                 color: isDarkMode
-                    ? Colors.black.withOpacity(0.3)
-                    : Colors.black.withOpacity(0.08),
+                    ? AppColors.overlayDark.withOpacity(0.3)
+                    : AppColors.overlayDark.withOpacity(0.08),
                 blurRadius: 15,
                 offset: const Offset(0, 4),
               ),
@@ -304,9 +304,9 @@ class _EducationalHistoryScreenState extends State<EducationalHistoryScreen> {
                         : AppColors.secondaryLight,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.school,
-                    color: Colors.white,
+                    color: AppColors.overlayLight,
                     size: 32,
                   ),
                 ),

@@ -295,11 +295,11 @@ class _EmployeeLeaveListScreenState extends State<EmployeeLeaveListScreen> {
                       backgroundColor: isDarkMode
                           ? AppColors.primaryDark
                           : AppColors.primaryLight,
-                      icon: const Icon(Icons.add, color: Colors.white),
-                      label: const Text(
+                      icon: Icon(Icons.add, color: AppColors.overlayLight),
+                      label: Text(
                         'Create',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: AppColors.overlayLight,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -361,7 +361,7 @@ class _EmployeeLeaveListScreenState extends State<EmployeeLeaveListScreen> {
             children: [
               Icon(
                 icon,
-                color: Colors.white.withOpacity(0.9),
+                color: AppColors.overlayLight.withOpacity(0.9),
                 size: 28,
               ),
               Container(
@@ -370,15 +370,15 @@ class _EmployeeLeaveListScreenState extends State<EmployeeLeaveListScreen> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
+                  color: AppColors.overlayLight.withOpacity(0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   count.toString(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: AppColors.overlayLight,
                   ),
                 ),
               ),
@@ -387,10 +387,10 @@ class _EmployeeLeaveListScreenState extends State<EmployeeLeaveListScreen> {
           const SizedBox(height: 12),
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: Colors.white,
+              color: AppColors.overlayLight,
               letterSpacing: 0.5,
             ),
           ),

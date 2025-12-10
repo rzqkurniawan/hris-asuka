@@ -34,6 +34,7 @@ class AppColors {
   static const Color statusLeave = Color(0xFF8b5cf6); // Purple - Leave/Cuti
   static const Color statusSick = Color(0xFFEC4899); // Pink - Sick
   static const Color statusPermission = Color(0xFF6366F1); // Indigo - Permission
+  static const Color teal = Color(0xFF14B8A6); // Teal - Work Experience
 
   // Time-based colors (for greeting icons)
   static const Color timeNight = Color(0xFF6366F1); // Indigo for night
@@ -45,6 +46,16 @@ class AppColors {
   static const Color headerGradientEndLight = Color(0xFF0284C7);
   static const Color headerGradientStartDark = Color(0xFF1E3A5F);
   static const Color headerGradientEndDark = Color(0xFF0F172A);
+
+  // Success/Error colors (semantic)
+  static const Color success = Color(0xFF10B981); // Green - same as statusWork
+  static const Color error = Color(0xFFEF4444); // Red - same as statusAbsent
+  static const Color warning = Color(0xFFF59E0B); // Amber - same as statusLate
+  static const Color info = Color(0xFF0EA5E9); // Cyan - same as accent
+
+  // Overlay colors (for use on gradients/colored backgrounds)
+  static const Color overlayLight = Color(0xFFFFFFFF);
+  static const Color overlayDark = Color(0xFF000000);
 
   // Aliases for backward compatibility
   static const Color primary = primaryLight;

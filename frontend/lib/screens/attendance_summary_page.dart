@@ -136,12 +136,12 @@ class _AttendanceSummaryPageState extends State<AttendanceSummaryPage> {
             HapticFeedback.lightImpact();
             Navigator.pop(context);
           },
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: AppColors.overlayLight),
         ),
-        title: const Text(
+        title: Text(
           'Attendance Summary',
           style: TextStyle(
-            color: Colors.white,
+            color: AppColors.overlayLight,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -220,11 +220,11 @@ class _AttendanceSummaryPageState extends State<AttendanceSummaryPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDarkMode ? AppColors.surfaceDark : Colors.white,
+        color: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.overlayDark.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -332,7 +332,7 @@ class _AttendanceSummaryPageState extends State<AttendanceSummaryPage> {
             border: Border.all(
               color: isDarkMode
                   ? AppColors.surfaceAltDark
-                  : const Color(0xFFE2E8F0),
+                  : AppColors.borderLight,
               width: 1,
             ),
           ),
@@ -348,7 +348,7 @@ class _AttendanceSummaryPageState extends State<AttendanceSummaryPage> {
               ),
               dropdownColor: isDarkMode
                   ? AppColors.surfaceAltDark
-                  : Colors.white,
+                  : AppColors.surfaceLight,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
@@ -388,7 +388,7 @@ class _AttendanceSummaryPageState extends State<AttendanceSummaryPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: AppColors.overlayDark.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -399,12 +399,12 @@ class _AttendanceSummaryPageState extends State<AttendanceSummaryPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: AppColors.overlayLight.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.calendar_month,
-              color: Colors.white,
+              color: AppColors.overlayLight,
               size: 28,
             ),
           ),
@@ -417,16 +417,16 @@ class _AttendanceSummaryPageState extends State<AttendanceSummaryPage> {
                   'Periode',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.9),
+                    color: AppColors.overlayLight.withOpacity(0.9),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   currentSummary!.monthYear,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 22,
-                    color: Colors.white,
+                    color: AppColors.overlayLight,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -436,14 +436,14 @@ class _AttendanceSummaryPageState extends State<AttendanceSummaryPage> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: AppColors.overlayLight.withOpacity(0.2),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               '${currentSummary!.totalDays} Hari',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: Colors.white,
+                color: AppColors.overlayLight,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -528,11 +528,11 @@ class _AttendanceSummaryPageState extends State<AttendanceSummaryPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDarkMode ? AppColors.surfaceDark : Colors.white,
+        color: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.overlayDark.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -590,11 +590,11 @@ class _AttendanceSummaryPageState extends State<AttendanceSummaryPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDarkMode ? AppColors.surfaceDark : Colors.white,
+        color: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.overlayDark.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -670,7 +670,7 @@ class _AttendanceSummaryPageState extends State<AttendanceSummaryPage> {
           backgroundColor: isDarkMode
               ? AppColors.primaryDark
               : AppColors.primaryLight,
-          foregroundColor: Colors.white,
+          foregroundColor: AppColors.overlayLight,
           padding: const EdgeInsets.symmetric(vertical: 16),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),

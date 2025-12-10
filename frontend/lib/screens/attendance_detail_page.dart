@@ -91,14 +91,14 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
             HapticFeedback.lightImpact();
             Navigator.pop(context);
           },
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: Icon(Icons.arrow_back, color: AppColors.overlayLight),
         ),
         title: Column(
           children: [
-            const Text(
+            Text(
               'Detail Check Clock',
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.overlayLight,
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
@@ -106,7 +106,7 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
             Text(
               widget.monthYear,
               style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
+                color: AppColors.overlayLight.withOpacity(0.8),
                 fontSize: 12,
                 fontWeight: FontWeight.w400,
               ),
@@ -138,7 +138,7 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
             : AppColors.primaryGradientLight,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: AppColors.overlayDark.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -183,20 +183,20 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
+            color: AppColors.overlayLight.withOpacity(0.2),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(
             icon,
-            color: Colors.white,
+            color: AppColors.overlayLight,
             size: 20,
           ),
         ),
         const SizedBox(height: 6),
         Text(
           value,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: AppColors.overlayLight,
             fontSize: 18,
             fontWeight: FontWeight.w700,
           ),
@@ -204,7 +204,7 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
         Text(
           label,
           style: TextStyle(
-            color: Colors.white.withOpacity(0.8),
+            color: AppColors.overlayLight.withOpacity(0.8),
             fontSize: 11,
             fontWeight: FontWeight.w500,
           ),
@@ -217,11 +217,11 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
     return Container(
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDarkMode ? AppColors.surfaceDark : Colors.white,
+        color: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.overlayDark.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -234,7 +234,7 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
             height: 1,
             color: isDarkMode
                 ? AppColors.surfaceAltDark
-                : const Color(0xFFE2E8F0),
+                : AppColors.borderLight,
           ),
           Expanded(
             child: Scrollbar(
@@ -288,7 +288,7 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
       columnSpacing: 24,
       horizontalMargin: 16,
       headingRowColor: MaterialStateProperty.all(
-        isDarkMode ? AppColors.surfaceAltDark : const Color(0xFFF1F5F9),
+        isDarkMode ? AppColors.surfaceAltDark : AppColors.backgroundLight,
       ),
       headingRowHeight: 56,
       dataRowHeight: 64,

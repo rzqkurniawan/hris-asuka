@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../constants/app_colors.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -21,28 +22,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       title: 'Absensi Mudah',
       description:
           'Lakukan check-in dan check-out dengan mudah menggunakan GPS dan verifikasi wajah untuk keamanan maksimal.',
-      color: const Color(0xFF0EA5E9),
+      color: AppColors.accent,
     ),
     OnboardingData(
       icon: Icons.location_on_rounded,
       title: 'Lokasi Terverifikasi',
       description:
           'Pastikan Anda berada di lokasi yang tepat. Sistem akan memvalidasi lokasi Anda secara otomatis.',
-      color: const Color(0xFF10B981),
+      color: AppColors.statusWork,
     ),
     OnboardingData(
       icon: Icons.face_rounded,
       title: 'Face Recognition',
       description:
           'Keamanan ekstra dengan teknologi pengenalan wajah. Pastikan yang absen adalah Anda sendiri.',
-      color: const Color(0xFF8B5CF6),
+      color: AppColors.statusLeave,
     ),
     OnboardingData(
       icon: Icons.history_rounded,
       title: 'Riwayat Lengkap',
       description:
           'Pantau riwayat kehadiran Anda dengan mudah. Lihat statistik dan detail absensi kapan saja.',
-      color: const Color(0xFFF59E0B),
+      color: AppColors.statusLate,
     ),
   ];
 
@@ -81,7 +82,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+      backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
       body: SafeArea(
         child: Column(
           children: [
@@ -97,7 +98,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       'Lewati',
                       style: TextStyle(
                         fontSize: 14.sp,
-                        color: isDark ? Colors.grey[400] : Colors.grey[600],
+                        color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
                       ),
                     ),
                   ),
@@ -232,7 +233,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             style: TextStyle(
               fontSize: 28.sp,
               fontWeight: FontWeight.bold,
-              color: isDark ? Colors.white : const Color(0xFF1E293B),
+              color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
             ),
           )
               .animate(target: isActive ? 1 : 0)
@@ -247,7 +248,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 16.sp,
-              color: isDark ? Colors.grey[400] : Colors.grey[600],
+              color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
               height: 1.5,
             ),
           )
@@ -270,7 +271,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       decoration: BoxDecoration(
         color: isActive
             ? _pages[_currentPage].color
-            : (isDark ? Colors.grey[700] : Colors.grey[300]),
+            : (isDark ? AppColors.borderDark : AppColors.borderLight),
         borderRadius: BorderRadius.circular(4.r),
       ),
     );

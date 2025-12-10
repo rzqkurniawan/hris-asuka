@@ -193,8 +193,8 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
           isDarkMode ? AppColors.backgroundDark : AppColors.backgroundLight,
       appBar: AppBar(
         title: const Text('Absensi'),
-        backgroundColor: isDarkMode ? AppColors.cardDark : Colors.white,
-        foregroundColor: isDarkMode ? Colors.white : AppColors.textPrimary,
+        backgroundColor: isDarkMode ? AppColors.cardDark : AppColors.surfaceLight,
+        foregroundColor: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimary,
         elevation: 0,
       ),
       body: _isLoading
@@ -266,11 +266,11 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDarkMode ? AppColors.cardDark : Colors.white,
+        color: isDarkMode ? AppColors.cardDark : AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.overlayDark.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -284,7 +284,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: isDarkMode ? Colors.white : AppColors.textPrimary,
+              color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
@@ -362,7 +362,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: isDarkMode ? Colors.white : AppColors.textPrimary,
+              color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 4),
@@ -397,11 +397,11 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDarkMode ? AppColors.cardDark : Colors.white,
+        color: isDarkMode ? AppColors.cardDark : AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.overlayDark.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -414,7 +414,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
             children: [
               Icon(
                 Icons.location_on,
-                color: isDarkMode ? Colors.white : AppColors.primary,
+                color: isDarkMode ? AppColors.textPrimaryDark : AppColors.primary,
               ),
               const SizedBox(width: 8),
               Text(
@@ -422,7 +422,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: isDarkMode ? Colors.white : AppColors.textPrimary,
+                  color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimary,
                 ),
               ),
             ],
@@ -497,12 +497,12 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
             child: ElevatedButton.icon(
               onPressed: _isCheckingLocation ? null : _getCurrentLocation,
               icon: _isCheckingLocation
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: AppColors.overlayLight,
                       ),
                     )
                   : const Icon(Icons.my_location),
@@ -513,7 +513,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
                       : 'Cek Lokasi Saya'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
+                foregroundColor: AppColors.overlayLight,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -556,10 +556,10 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: Colors.grey[300],
-              disabledForegroundColor: Colors.grey[500],
+              backgroundColor: AppColors.statusWork,
+              foregroundColor: AppColors.overlayLight,
+              disabledBackgroundColor: AppColors.borderLight,
+              disabledForegroundColor: AppColors.textSecondaryLight,
               padding: const EdgeInsets.symmetric(vertical: 20),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -581,10 +581,10 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: Colors.grey[300],
-              disabledForegroundColor: Colors.grey[500],
+              backgroundColor: AppColors.info,
+              foregroundColor: AppColors.overlayLight,
+              disabledBackgroundColor: AppColors.borderLight,
+              disabledForegroundColor: AppColors.textSecondaryLight,
               padding: const EdgeInsets.symmetric(vertical: 20),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
@@ -603,11 +603,11 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: isDarkMode ? AppColors.cardDark : Colors.white,
+        color: isDarkMode ? AppColors.cardDark : AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: AppColors.overlayDark.withOpacity(0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -621,7 +621,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: isDarkMode ? Colors.white : AppColors.textPrimary,
+              color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 12),
@@ -644,7 +644,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
                             style: TextStyle(
                               fontWeight: FontWeight.w500,
                               color: isDarkMode
-                                  ? Colors.white
+                                  ? AppColors.textPrimaryDark
                                   : AppColors.textPrimary,
                             ),
                           ),

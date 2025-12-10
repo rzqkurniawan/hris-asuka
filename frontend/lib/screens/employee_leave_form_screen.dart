@@ -148,7 +148,7 @@ class _EmployeeLeaveFormScreenState extends State<EmployeeLeaveFormScreen> {
             colorScheme: ColorScheme.light(
               primary:
                   isDarkMode ? AppColors.primaryDark : AppColors.primaryLight,
-              onPrimary: Colors.white,
+              onPrimary: AppColors.overlayLight,
               surface:
                   isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
               onSurface: isDarkMode
@@ -519,20 +519,20 @@ class _EmployeeLeaveFormScreenState extends State<EmployeeLeaveFormScreen> {
                         backgroundColor: isDarkMode
                             ? AppColors.primaryDark
                             : AppColors.primaryLight,
-                        foregroundColor: Colors.white,
+                        foregroundColor: AppColors.overlayLight,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                         elevation: 0,
                       ),
                       child: _isLoading
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 24,
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
                                 valueColor:
-                                    AlwaysStoppedAnimation<Color>(Colors.white),
+                                    AlwaysStoppedAnimation<Color>(AppColors.overlayLight),
                               ),
                             )
                           : Text(

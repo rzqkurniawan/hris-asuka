@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import '../providers/auth_provider.dart';
+import '../constants/app_colors.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -80,12 +81,12 @@ class _SplashScreenState extends State<SplashScreen> {
             end: Alignment.bottomRight,
             colors: isDark
                 ? [
-                    const Color(0xFF020617),
-                    const Color(0xFF0F172A),
+                    AppColors.backgroundDark,
+                    AppColors.surfaceDark,
                   ]
                 : [
-                    const Color(0xFFF0F9FF),
-                    const Color(0xFFE0F2FE),
+                    AppColors.backgroundLight,
+                    AppColors.mutedLight,
                   ],
           ),
         ),
@@ -98,20 +99,20 @@ class _SplashScreenState extends State<SplashScreen> {
               height: 120,
               decoration: BoxDecoration(
                 color: isDark
-                    ? const Color(0xFF0F172A)
-                    : Colors.white,
+                    ? AppColors.surfaceDark
+                    : AppColors.surfaceLight,
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(
                   color: isDark
-                      ? const Color(0xFF1E293B).withOpacity(0.15)
-                      : const Color(0xFFE0F2FE),
+                      ? AppColors.surfaceAltDark.withOpacity(0.15)
+                      : AppColors.mutedLight,
                   width: 1,
                 ),
                 boxShadow: isDark
                     ? []
                     : [
                         BoxShadow(
-                          color: const Color(0xFF0C4A6E).withOpacity(0.08),
+                          color: AppColors.primaryLight.withOpacity(0.08),
                           blurRadius: 20,
                           offset: const Offset(0, 4),
                         ),
@@ -152,8 +153,8 @@ class _SplashScreenState extends State<SplashScreen> {
               'Human Resource Information System',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: isDark
-                        ? const Color(0xFF94A3B8)
-                        : const Color(0xFF0369A1),
+                        ? AppColors.textSecondaryDark
+                        : AppColors.secondaryLight,
                   ),
             )
                 .animate(delay: 400.ms)
@@ -173,10 +174,10 @@ class _SplashScreenState extends State<SplashScreen> {
                       height: 3,
                       child: LinearProgressIndicator(
                         backgroundColor: isDark
-                            ? const Color(0xFF94A3B8).withOpacity(0.2)
-                            : const Color(0xFFE0F2FE),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          Color(0xFF0EA5E9),
+                            ? AppColors.textSecondaryDark.withOpacity(0.2)
+                            : AppColors.mutedLight,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          AppColors.accent,
                         ),
                       ),
                     ),
@@ -186,8 +187,8 @@ class _SplashScreenState extends State<SplashScreen> {
                     'Version 1.0.0',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: isDark
-                              ? const Color(0xFF94A3B8)
-                              : const Color(0xFF64748B),
+                              ? AppColors.textSecondaryDark
+                              : AppColors.textSecondaryLight,
                         ),
                   ),
                 ],

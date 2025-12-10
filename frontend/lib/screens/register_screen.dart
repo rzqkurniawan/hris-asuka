@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import '../constants/app_colors.dart';
 import '../services/auth_service.dart';
 import '../services/api_client.dart';
 import '../utils/toast_utils.dart';
@@ -163,12 +164,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     width: 72,
                     height: 72,
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                      color: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
                         color: isDark
-                            ? const Color(0xFF1E293B).withOpacity(0.15)
-                            : const Color(0xFFE0F2FE),
+                            ? AppColors.surfaceAltDark.withOpacity(0.15)
+                            : AppColors.mutedLight,
                         width: 1,
                       ),
                     ),
@@ -207,8 +208,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   'Register to get started',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: isDark
-                            ? const Color(0xFF94A3B8)
-                            : const Color(0xFF0369A1),
+                            ? AppColors.textSecondaryDark
+                            : AppColors.secondaryLight,
                       ),
                   textAlign: TextAlign.center,
                 ),
@@ -276,18 +277,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             Container(
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF0EA5E9).withOpacity(0.1),
+                                color: AppColors.accent.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color:
-                                      const Color(0xFF0EA5E9).withOpacity(0.3),
+                                  color: AppColors.accent.withOpacity(0.3),
                                 ),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.check_circle,
-                                    color: Color(0xFF0EA5E9),
+                                    color: AppColors.accent,
                                     size: 20,
                                   ),
                                   const SizedBox(width: 12),
@@ -308,8 +308,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: isDark
-                                                ? const Color(0xFF94A3B8)
-                                                : const Color(0xFF64748B),
+                                                ? AppColors.textSecondaryDark
+                                                : AppColors.textSecondaryLight,
                                           ),
                                         ),
                                       ],
@@ -337,8 +337,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               decoration: BoxDecoration(
                                 border: Border.all(
                                   color: isDark
-                                      ? const Color(0xFF1E293B)
-                                      : const Color(0xFFE0F2FE),
+                                      ? AppColors.surfaceAltDark
+                                      : AppColors.mutedLight,
                                 ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -558,18 +558,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _handleRegister,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF0EA5E9),
+                              backgroundColor: AppColors.accent,
+                              foregroundColor: AppColors.overlayLight,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
                             child: _isLoading
-                                ? const SizedBox(
+                                ? SizedBox(
                                     height: 20,
                                     width: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      color: Colors.white,
+                                      color: AppColors.overlayLight,
                                     ),
                                   )
                                 : const Text(
@@ -601,12 +602,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         HapticFeedback.lightImpact();
                         Navigator.pop(context);
                       },
-                      child: const Text(
+                      child: Text(
                         'Login',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
-                          color: Color(0xFF0EA5E9),
+                          color: AppColors.accent,
                         ),
                       ),
                     ),

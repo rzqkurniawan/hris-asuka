@@ -79,7 +79,7 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.access_time_rounded,
                         title: 'Check Clock History',
                         subtitle: 'Attendance records',
-                        color: const Color(0xFF0EA5E9),
+                        color: AppColors.accent,
                         onTap: () {
                           HapticFeedback.lightImpact();
                           Navigator.push(
@@ -94,7 +94,7 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.badge_rounded,
                         title: 'Employee Data',
                         subtitle: 'Personal information',
-                        color: const Color(0xFF10B981),
+                        color: AppColors.statusWork,
                         onTap: () {
                           HapticFeedback.lightImpact();
                           Navigator.push(
@@ -109,7 +109,7 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.people_rounded,
                         title: 'Family Data',
                         subtitle: 'Family members info',
-                        color: const Color(0xFFF59E0B),
+                        color: AppColors.statusLate,
                         onTap: () {
                           HapticFeedback.lightImpact();
                           Navigator.push(
@@ -124,7 +124,7 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.trending_up_rounded,
                         title: 'Position History',
                         subtitle: 'Career progression',
-                        color: const Color(0xFF8B5CF6),
+                        color: AppColors.statusLeave,
                         onTap: () {
                           HapticFeedback.lightImpact();
                           Navigator.push(
@@ -139,7 +139,7 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.card_membership_rounded,
                         title: 'Training History',
                         subtitle: 'Certifications & courses',
-                        color: const Color(0xFFEC4899),
+                        color: AppColors.statusSick,
                         onTap: () {
                           HapticFeedback.lightImpact();
                           Navigator.push(
@@ -154,7 +154,7 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.work_rounded,
                         title: 'Work Experience',
                         subtitle: 'Previous employments',
-                        color: const Color(0xFF14B8A6),
+                        color: AppColors.teal,
                         onTap: () {
                           HapticFeedback.lightImpact();
                           Navigator.push(
@@ -169,7 +169,7 @@ class ProfilePage extends StatelessWidget {
                         icon: Icons.school_rounded,
                         title: 'Educational History',
                         subtitle: 'Academic background',
-                        color: const Color(0xFF6366F1),
+                        color: AppColors.statusPermission,
                         onTap: () {
                           HapticFeedback.lightImpact();
                           Navigator.push(
@@ -203,13 +203,13 @@ class ProfilePage extends StatelessWidget {
           padding: EdgeInsets.all(8.w),
           decoration: BoxDecoration(
             color: isDarkMode
-                ? const Color(0xFF0EA5E9).withOpacity(0.2)
-                : const Color(0xFF0EA5E9).withOpacity(0.1),
+                ? AppColors.accent.withOpacity(0.2)
+                : AppColors.accent.withOpacity(0.1),
             borderRadius: BorderRadius.circular(10.r),
           ),
           child: Icon(
             icon,
-            color: const Color(0xFF0EA5E9),
+            color: AppColors.accent,
             size: 18.sp,
           ),
         ),
