@@ -6,6 +6,7 @@ import 'providers/theme_provider.dart';
 import 'providers/auth_provider.dart';
 import 'theme/app_theme_old.dart';
 import 'screens/splash_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/main_screen.dart';
@@ -64,6 +65,7 @@ class MyApp extends StatelessWidget {
               initialRoute: '/',
               routes: {
                 '/': (context) => const SplashScreen(),
+                '/onboarding': (context) => const OnboardingScreen(),
                 '/login': (context) => const LoginScreen(),
                 '/register': (context) => const RegisterScreen(),
                 '/main': (context) => const MainScreen(),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
@@ -8,7 +9,8 @@ import '../utils/page_transitions.dart';
 import 'home_page.dart';
 import 'profile_page.dart';
 import 'login_screen.dart';
-import '../widgets/custom_bottom_nav_bar.dart';
+import 'mobile_attendance_screen.dart';
+import '../widgets/fab_bottom_nav_bar.dart';
 import '../constants/app_colors.dart';
 
 class MainScreen extends StatefulWidget {
@@ -42,6 +44,14 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  void _onAttendanceFabPressed() {
+    HapticFeedback.mediumImpact();
+    Navigator.push(
+      context,
+      SlideUpRoute(page: const MobileAttendanceScreen()),
+    );
+  }
+
   Future<void> _handleLogout() async {
     HapticFeedback.lightImpact();
 
@@ -57,11 +67,9 @@ class _MainScreenState extends State<MainScreen> {
     if (!shouldLogout || !mounted) return;
 
     HapticFeedback.mediumImpact();
-    // Clear auth session before navigating to login
     try {
       await context.read<AuthProvider>().logout();
     } catch (e) {
-      // Ignore errors on logout; fallback to navigation
       debugPrint('Logout error: $e');
     }
     Navigator.of(context).pushAndRemoveUntil(
@@ -82,16 +90,25 @@ class _MainScreenState extends State<MainScreen> {
         backgroundColor: Colors.transparent,
         title: Row(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                'assets/logo/HRIS_LOGO.png',
-                width: 32,
-                height: 32,
-                fit: BoxFit.contain,
+            Container(
+              padding: EdgeInsets.all(8.w),
+              decoration: BoxDecoration(
+                color: isDarkMode
+                    ? AppColors.surfaceAltDark
+                    : const Color(0xFF0EA5E9).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(6.r),
+                child: Image.asset(
+                  'assets/logo/HRIS_LOGO.png',
+                  width: 28.w,
+                  height: 28.w,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12.w),
             Text(
               _currentIndex == 0 ? 'HRIS Asuka' : 'My Profile',
               style: TextStyle(
@@ -99,68 +116,65 @@ class _MainScreenState extends State<MainScreen> {
                     ? AppColors.textPrimaryDark
                     : AppColors.textPrimaryLight,
                 fontWeight: FontWeight.bold,
-                fontSize: 20,
+                fontSize: 20.sp,
               ),
             ),
           ],
         ),
         actions: [
-          Row(
-            children: [
-              // Theme Toggle Button
-              Container(
-                margin: const EdgeInsets.only(right: 12),
-                decoration: BoxDecoration(
-                  color: isDarkMode
-                      ? AppColors.surfaceAltDark
-                      : AppColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: IconButton(
-                  onPressed: () {
-                    context.read<ThemeProvider>().toggleTheme();
-                  },
-                  icon: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 300),
-                    transitionBuilder: (child, animation) {
-                      return RotationTransition(
-                        turns: animation,
-                        child: ScaleTransition(
-                          scale: animation,
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: Icon(
-                      isDarkMode ? Icons.light_mode : Icons.dark_mode,
-                      key: ValueKey(isDarkMode),
-                      color: isDarkMode
-                          ? AppColors.primaryDark
-                          : AppColors.primaryLight,
+          // Theme Toggle Button
+          Container(
+            margin: EdgeInsets.only(right: 8.w),
+            decoration: BoxDecoration(
+              color: isDarkMode
+                  ? AppColors.surfaceAltDark
+                  : const Color(0xFF0EA5E9).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: IconButton(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                context.read<ThemeProvider>().toggleTheme();
+              },
+              icon: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (child, animation) {
+                  return RotationTransition(
+                    turns: animation,
+                    child: ScaleTransition(
+                      scale: animation,
+                      child: child,
                     ),
-                  ),
-                ),
-              ),
-              // Logout Button
-              Container(
-                margin: const EdgeInsets.only(right: 16),
-                decoration: BoxDecoration(
+                  );
+                },
+                child: Icon(
+                  isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  key: ValueKey(isDarkMode),
                   color: isDarkMode
-                      ? AppColors.surfaceAltDark
-                      : AppColors.surfaceLight,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: IconButton(
-                  onPressed: _handleLogout,
-                  icon: Icon(
-                    Icons.logout,
-                    color: isDarkMode
-                        ? AppColors.dangerDark
-                        : AppColors.dangerLight,
-                  ),
+                      ? const Color(0xFFFBBF24)
+                      : const Color(0xFF0EA5E9),
+                  size: 22.sp,
                 ),
               ),
-            ],
+            ),
+          ),
+          // Logout Button
+          Container(
+            margin: EdgeInsets.only(right: 16.w),
+            decoration: BoxDecoration(
+              color: isDarkMode
+                  ? AppColors.surfaceAltDark
+                  : AppColors.dangerLight.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: IconButton(
+              onPressed: _handleLogout,
+              icon: Icon(
+                Icons.logout_rounded,
+                color: AppColors.dangerLight,
+                size: 22.sp,
+              ),
+            ),
           ),
         ],
       ),
@@ -170,20 +184,22 @@ class _MainScreenState extends State<MainScreen> {
           PageView(
             controller: _pageController,
             onPageChanged: _onPageChanged,
+            physics: const BouncingScrollPhysics(),
             children: const [
               HomePage(),
               ProfilePage(),
             ],
           ),
 
-          // Bottom Navigation Bar
+          // Bottom Navigation Bar with FAB
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: CustomBottomNavBar(
+            child: FabBottomNavBar(
               currentIndex: _currentIndex,
               onTap: _onTabTapped,
+              onFabPressed: _onAttendanceFabPressed,
               hasNotification: false,
             ),
           ),
@@ -191,4 +207,29 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
   }
+}
+
+/// Slide Up Route for attendance screen
+class SlideUpRoute extends PageRouteBuilder {
+  final Widget page;
+
+  SlideUpRoute({required this.page})
+      : super(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            const begin = Offset(0.0, 1.0);
+            const end = Offset.zero;
+            const curve = Curves.easeInOutCubic;
+
+            var tween = Tween(begin: begin, end: end).chain(
+              CurveTween(curve: curve),
+            );
+
+            return SlideTransition(
+              position: animation.drive(tween),
+              child: child,
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 400),
+        );
 }

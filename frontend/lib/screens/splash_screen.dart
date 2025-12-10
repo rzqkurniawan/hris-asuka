@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import '../providers/auth_provider.dart';
 
@@ -23,6 +24,18 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
+
+    // Check if onboarding completed
+    final prefs = await SharedPreferences.getInstance();
+    final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+
+    if (!onboardingCompleted) {
+      // First time user, show onboarding
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/onboarding');
+      }
+      return;
+    }
 
     // Initialize AuthProvider to check if user is already logged in
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
