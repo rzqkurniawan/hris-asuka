@@ -330,7 +330,7 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        _todayStatus?.date ?? DateFormat('EEEE, MMMM dd, yyyy').format(DateTime.now()),
+                        _todayStatus?.date ?? DateFormat('EEEE, dd MMMM yyyy').format(DateTime.now()),
                         style: TextStyle(
                           fontSize: 13,
                           color: widget.isDarkMode
