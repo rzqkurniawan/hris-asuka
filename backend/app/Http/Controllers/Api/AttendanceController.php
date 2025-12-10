@@ -144,6 +144,7 @@ class AttendanceController extends Controller
             // Calculate summary statistics based on description field
             $totalDays = $records->count();
             $masukDays = 0;     // Masuk
+            $lateDays = 0;      // Terlambat (Late)
             $alphaDays = 0;     // Alpha (Absent without permission)
             $izinDays = 0;      // Ijin & IjinNormatif (Permission)
             $sakitDays = 0;     // Sakit (Sick leave)
@@ -155,6 +156,17 @@ class AttendanceController extends Controller
                 // Count based on description field
                 if ($description === 'Masuk') {
                     $masukDays++;
+
+                    // Check if late (check_in > on_duty and no permission_late)
+                    if (!empty($record->check_in) && !empty($record->on_duty) && !$record->permission_late) {
+                        $checkIn = Carbon::parse($record->check_in);
+                        $onDuty = Carbon::parse($record->on_duty);
+
+                        // If check_in is after on_duty, count as late
+                        if ($checkIn->gt($onDuty)) {
+                            $lateDays++;
+                        }
+                    }
                 } elseif ($description === 'Alpha') {
                     $alphaDays++;
                 } elseif ($description === 'Ijin' || $description === 'IjinNormatif') {
@@ -184,6 +196,7 @@ class AttendanceController extends Controller
                     'month_name' => $monthName,
                     'total_days' => (int) $totalDays,
                     'masuk' => (int) $masukDays,
+                    'terlambat' => (int) $lateDays,
                     'alpha' => (int) $alphaDays,
                     'izin' => (int) $izinDays,
                     'sakit' => (int) $sakitDays,

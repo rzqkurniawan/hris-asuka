@@ -11,13 +11,62 @@ import '../widgets/quick_stats_row.dart';
 import '../widgets/custom_dialog.dart';
 import '../utils/page_transitions.dart';
 import '../providers/auth_provider.dart';
+import '../services/attendance_service.dart';
+import '../models/attendance_model.dart';
 import 'overtime_list_screen.dart';
 import 'employee_leave_list_screen.dart';
 import 'pay_slip_screen.dart';
 import 'attendance_summary_page.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  final AttendanceService _attendanceService = AttendanceService();
+  MonthlySummary? _monthlySummary;
+  bool _isLoadingStats = true;
+  String? _statsError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMonthlyStats();
+  }
+
+  Future<void> _loadMonthlyStats() async {
+    if (!mounted) return;
+
+    setState(() {
+      _isLoadingStats = true;
+      _statsError = null;
+    });
+
+    try {
+      final now = DateTime.now();
+      final summary = await _attendanceService.getAttendanceSummary(
+        month: now.month,
+        year: now.year,
+      );
+
+      if (mounted) {
+        setState(() {
+          _monthlySummary = summary;
+          _isLoadingStats = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _statsError = e.toString();
+          _isLoadingStats = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,13 +116,7 @@ class HomePage extends StatelessWidget {
                   SizedBox(height: 12.h),
 
                   // Quick Stats Row
-                  QuickStatsRow(
-                    presentDays: 18,
-                    lateDays: 2,
-                    absentDays: 0,
-                    leaveDays: 1,
-                    isDarkMode: isDarkMode,
-                  ),
+                  _buildQuickStats(isDarkMode),
 
                   SizedBox(height: 24.h),
 
@@ -204,6 +247,74 @@ class HomePage extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildQuickStats(bool isDarkMode) {
+    if (_isLoadingStats) {
+      return Container(
+        height: 100.h,
+        decoration: BoxDecoration(
+          color: isDarkMode ? AppColors.surfaceAltDark : Colors.white,
+          borderRadius: BorderRadius.circular(16.r),
+        ),
+        child: Center(
+          child: SizedBox(
+            width: 24.w,
+            height: 24.w,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: const Color(0xFF0EA5E9),
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (_statsError != null || _monthlySummary == null) {
+      return GestureDetector(
+        onTap: _loadMonthlyStats,
+        child: Container(
+          height: 100.h,
+          decoration: BoxDecoration(
+            color: isDarkMode ? AppColors.surfaceAltDark : Colors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(
+              color: const Color(0xFFEF4444).withOpacity(0.3),
+            ),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.refresh_rounded,
+                  color: const Color(0xFFEF4444),
+                  size: 24.sp,
+                ),
+                SizedBox(height: 8.h),
+                Text(
+                  'Tap to retry',
+                  style: TextStyle(
+                    color: isDarkMode
+                        ? AppColors.textSecondaryDark
+                        : AppColors.textSecondaryLight,
+                    fontSize: 12.sp,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return QuickStatsRow(
+      presentDays: _monthlySummary!.masuk,
+      lateDays: _monthlySummary!.terlambat,
+      absentDays: _monthlySummary!.alpha,
+      leaveDays: _monthlySummary!.cuti,
+      isDarkMode: isDarkMode,
     );
   }
 

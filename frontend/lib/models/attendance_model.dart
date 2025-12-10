@@ -99,6 +99,7 @@ class MonthlySummary {
   final String monthName;
   final int totalDays;
   final int masuk;
+  final int terlambat;
   final int alpha;
   final int izin;
   final int sakit;
@@ -111,6 +112,7 @@ class MonthlySummary {
     required this.monthName,
     required this.totalDays,
     required this.masuk,
+    this.terlambat = 0,
     required this.alpha,
     required this.izin,
     required this.sakit,
@@ -126,6 +128,7 @@ class MonthlySummary {
       monthName: json['month_name'] as String,
       totalDays: json['total_days'] as int,
       masuk: json['masuk'] as int,
+      terlambat: json['terlambat'] as int? ?? 0,
       alpha: json['alpha'] as int,
       izin: json['izin'] as int,
       sakit: json['sakit'] as int,
