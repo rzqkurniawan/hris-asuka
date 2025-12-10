@@ -234,6 +234,23 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
     return AttendanceStatus.work;
   }
 
+  String _formatDisplayDate(String? dateString) {
+    try {
+      DateTime date;
+      if (dateString != null) {
+        // Parse date from API format "2025-12-10"
+        date = DateTime.parse(dateString);
+      } else {
+        date = DateTime.now();
+      }
+      // Format to "Wednesday, 10 December 2025"
+      return DateFormat('EEEE, dd MMMM yyyy').format(date);
+    } catch (e) {
+      // Fallback to current date if parsing fails
+      return DateFormat('EEEE, dd MMMM yyyy').format(DateTime.now());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -330,7 +347,7 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        _todayStatus?.date ?? DateFormat('EEEE, dd MMMM yyyy').format(DateTime.now()),
+                        _formatDisplayDate(_todayStatus?.date),
                         style: TextStyle(
                           fontSize: 13,
                           color: widget.isDarkMode
