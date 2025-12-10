@@ -10,6 +10,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../constants/app_colors.dart';
 import '../services/mobile_attendance_service.dart';
+import '../services/device_security_service.dart';
 
 class FaceVerificationScreen extends StatefulWidget {
   final String checkType;
@@ -18,6 +19,7 @@ class FaceVerificationScreen extends StatefulWidget {
   final int locationId;
   final String locationName;
   final VoidCallback onSuccess;
+  final ExtendedLocationData? securityData; // Anti-fake GPS data
 
   const FaceVerificationScreen({
     super.key,
@@ -27,6 +29,7 @@ class FaceVerificationScreen extends StatefulWidget {
     required this.locationId,
     required this.locationName,
     required this.onSuccess,
+    this.securityData,
   });
 
   @override
@@ -265,6 +268,7 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen> {
         faceImageBase64: _capturedImageBase64!,
         faceConfidence: _faceConfidence,
         deviceInfo: deviceInfo,
+        securityData: widget.securityData, // Pass anti-fake GPS data
       );
 
       setState(() {

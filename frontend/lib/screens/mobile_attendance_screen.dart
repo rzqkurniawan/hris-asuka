@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../constants/app_colors.dart';
+import '../services/device_security_service.dart';
 import '../services/mobile_attendance_service.dart';
 import '../utils/page_transitions.dart';
 import 'face_verification_screen.dart';
@@ -16,6 +17,7 @@ class MobileAttendanceScreen extends StatefulWidget {
 
 class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
   final MobileAttendanceService _attendanceService = MobileAttendanceService();
+  final DeviceSecurityService _securityService = DeviceSecurityService();
 
   bool _isLoading = true;
   bool _isCheckingLocation = false;
@@ -25,6 +27,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
   List<AttendanceLocation> _locations = [];
   Position? _currentPosition;
   LocationValidationResult? _locationValidation;
+  ExtendedLocationData? _securityData; // Anti-fake GPS data
 
   @override
   void initState() {
@@ -62,6 +65,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
     setState(() {
       _isCheckingLocation = true;
       _locationValidation = null;
+      _securityData = null;
     });
 
     try {
@@ -94,6 +98,18 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
         _currentPosition = position;
       });
 
+      // Get extended security data (anti-fake GPS)
+      final securityData = await _securityService.getExtendedLocationData(position);
+
+      // Check if mock location is detected
+      if (_securityService.shouldBlockAttendance(securityData)) {
+        throw Exception('Fake GPS terdeteksi! Absensi tidak dapat dilakukan.');
+      }
+
+      setState(() {
+        _securityData = securityData;
+      });
+
       // Validate location against allowed locations
       final validation = await _attendanceService.validateLocation(
         latitude: position.latitude,
@@ -107,7 +123,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
     } catch (e) {
       setState(() {
         _isCheckingLocation = false;
-        _errorMessage = e.toString();
+        _securityData = null;
       });
 
       if (mounted) {
@@ -152,13 +168,15 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
           longitude: _currentPosition!.longitude,
           locationId: _locationValidation!.locationId!,
           locationName: _locationValidation!.locationName!,
+          securityData: _securityData, // Pass anti-fake GPS data
           onSuccess: () {
             // Refresh data after successful attendance
             _loadData();
-            // Reset location validation
+            // Reset location validation and security data
             setState(() {
               _currentPosition = null;
               _locationValidation = null;
+              _securityData = null;
             });
           },
         ),

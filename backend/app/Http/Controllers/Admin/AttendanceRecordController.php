@@ -48,6 +48,18 @@ class AttendanceRecordController extends Controller
             });
         }
 
+        // Filter by suspicious/security status
+        if ($request->filled('suspicious')) {
+            $suspicious = $request->suspicious;
+            if ($suspicious === '1') {
+                $query->where('is_suspicious', true);
+            } elseif ($suspicious === 'mock') {
+                $query->where('is_mock_location', true);
+            } elseif ($suspicious === 'rooted') {
+                $query->where('is_rooted', true);
+            }
+        }
+
         $records = $query->orderBy('attendance_date', 'desc')
                         ->orderBy('created_at', 'desc')
                         ->paginate(20);

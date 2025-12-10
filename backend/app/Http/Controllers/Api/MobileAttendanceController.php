@@ -197,6 +197,16 @@ class MobileAttendanceController extends Controller
             'face_image' => 'required|string', // Base64 encoded image
             'face_confidence' => 'required|numeric|between:0,100',
             'device_info' => 'nullable|string|max:255',
+            // Anti-fake GPS fields
+            'is_mock_location' => 'nullable|boolean',
+            'is_rooted' => 'nullable|boolean',
+            'wifi_ssid' => 'nullable|string|max:100',
+            'wifi_bssid' => 'nullable|string|max:50',
+            'gps_accuracy' => 'nullable|numeric|min:0',
+            'location_age_ms' => 'nullable|integer|min:0',
+            'location_provider' => 'nullable|string|max:50',
+            'altitude' => 'nullable|numeric',
+            'speed' => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {
@@ -266,7 +276,20 @@ class MobileAttendanceController extends Controller
             // Save face image
             $faceImagePath = $this->saveFaceImage($request->face_image, $user->id, $checkType);
 
-            // Create attendance record
+            // Prepare location data for suspicious detection
+            $locationData = [
+                'is_mock_location' => $request->boolean('is_mock_location', false),
+                'is_rooted' => $request->boolean('is_rooted', false),
+                'gps_accuracy' => $request->gps_accuracy,
+                'location_age_ms' => $request->location_age_ms,
+                'speed' => $request->speed,
+            ];
+
+            // Detect suspicious behavior
+            $suspiciousFlags = AttendanceRecord::detectSuspiciousBehavior($locationData);
+            $isSuspicious = AttendanceRecord::shouldFlagAsSuspicious($locationData);
+
+            // Create attendance record with anti-fake GPS data
             $attendance = AttendanceRecord::create([
                 'employee_id' => $employeeId,
                 'user_id' => $user->id,
@@ -280,13 +303,31 @@ class MobileAttendanceController extends Controller
                 'face_image_path' => $faceImagePath,
                 'device_info' => $request->device_info,
                 'attendance_date' => now()->toDateString(),
+                // Anti-fake GPS data
+                'is_mock_location' => $request->boolean('is_mock_location', false),
+                'is_rooted' => $request->boolean('is_rooted'),
+                'wifi_ssid' => $request->wifi_ssid,
+                'wifi_bssid' => $request->wifi_bssid,
+                'gps_accuracy' => $request->gps_accuracy,
+                'location_age_ms' => $request->location_age_ms,
+                'location_provider' => $request->location_provider,
+                'altitude' => $request->altitude,
+                'speed' => $request->speed,
+                'suspicious_flags' => !empty($suspiciousFlags) ? $suspiciousFlags : null,
+                'is_suspicious' => $isSuspicious,
             ]);
 
             $checkTypeDisplay = $checkType === AttendanceRecord::CHECK_TYPE_IN ? 'Check-In' : 'Check-Out';
 
+            // Add warning message if suspicious
+            $message = "{$checkTypeDisplay} berhasil dicatat";
+            if ($isSuspicious) {
+                $message .= " (Flagged for review)";
+            }
+
             return response()->json([
                 'success' => true,
-                'message' => "{$checkTypeDisplay} berhasil dicatat",
+                'message' => $message,
                 'data' => [
                     'id' => $attendance->id,
                     'check_type' => $attendance->check_type,
@@ -295,6 +336,8 @@ class MobileAttendanceController extends Controller
                     'location_verified' => $attendance->location_verified,
                     'face_verified' => $attendance->face_verified,
                     'face_confidence' => $attendance->face_confidence,
+                    'is_suspicious' => $isSuspicious,
+                    'suspicious_flags' => $suspiciousFlags,
                 ],
             ], 201);
         } catch (\Exception $e) {

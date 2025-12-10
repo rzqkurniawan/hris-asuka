@@ -129,6 +129,117 @@
                 </div>
             </div>
         </div>
+
+        <!-- Security Status (Anti-Fake GPS) -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header {{ $record->is_suspicious ? 'bg-danger text-white' : '' }}">
+                <h5 class="mb-0">
+                    <i class="bi bi-shield-exclamation"></i> Security Status
+                    @if($record->is_suspicious)
+                        <span class="badge bg-warning text-dark ms-2">SUSPICIOUS</span>
+                    @endif
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card {{ $record->is_mock_location ? 'border-danger bg-danger-subtle' : 'border-success bg-success-subtle' }}">
+                            <div class="card-body text-center py-3">
+                                <i class="bi {{ $record->is_mock_location ? 'bi-geo text-danger' : 'bi-geo-alt-fill text-success' }}" style="font-size: 1.5rem;"></i>
+                                <h6 class="mt-2 mb-0">GPS Status</h6>
+                                @if($record->is_mock_location)
+                                    <span class="badge bg-danger">Mock GPS Detected</span>
+                                @else
+                                    <span class="badge bg-success">Genuine GPS</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card {{ $record->is_rooted ? 'border-warning bg-warning-subtle' : 'border-success bg-success-subtle' }}">
+                            <div class="card-body text-center py-3">
+                                <i class="bi {{ $record->is_rooted ? 'bi-phone-vibrate text-warning' : 'bi-phone text-success' }}" style="font-size: 1.5rem;"></i>
+                                <h6 class="mt-2 mb-0">Device Status</h6>
+                                @if($record->is_rooted)
+                                    <span class="badge bg-warning text-dark">Rooted/Jailbroken</span>
+                                @else
+                                    <span class="badge bg-success">Normal Device</span>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if($record->suspicious_flags && count($record->suspicious_flags) > 0)
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <h6 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Suspicious Flags:</h6>
+                        <ul class="mb-0">
+                            @foreach($record->suspicious_flags as $flag)
+                                <li>
+                                    @if($flag === 'mock_location_enabled')
+                                        <strong>Mock Location:</strong> GPS location appears to be spoofed
+                                    @elseif($flag === 'rooted_device')
+                                        <strong>Rooted Device:</strong> Device has root/jailbreak access
+                                    @elseif($flag === 'low_gps_accuracy')
+                                        <strong>Low GPS Accuracy:</strong> Location accuracy > 100m
+                                    @elseif($flag === 'stale_location_data')
+                                        <strong>Stale Location:</strong> Location data older than 30 seconds
+                                    @elseif($flag === 'unrealistic_speed')
+                                        <strong>Unrealistic Speed:</strong> Movement speed > 180 km/h
+                                    @else
+                                        {{ $flag }}
+                                    @endif
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                <table class="table table-sm mt-3 mb-0">
+                    <tr>
+                        <th>GPS Accuracy</th>
+                        <td>
+                            @if($record->gps_accuracy)
+                                {{ number_format($record->gps_accuracy, 2) }}m
+                                @if($record->gps_accuracy > 100)
+                                    <span class="badge bg-warning text-dark">Low</span>
+                                @elseif($record->gps_accuracy > 50)
+                                    <span class="badge bg-info">Medium</span>
+                                @else
+                                    <span class="badge bg-success">High</span>
+                                @endif
+                            @else
+                                <span class="text-muted">-</span>
+                            @endif
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Location Provider</th>
+                        <td>{{ $record->location_provider ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>WiFi SSID</th>
+                        <td>{{ $record->wifi_ssid ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>WiFi BSSID</th>
+                        <td><code>{{ $record->wifi_bssid ?? '-' }}</code></td>
+                    </tr>
+                    <tr>
+                        <th>Altitude</th>
+                        <td>{{ $record->altitude ? number_format($record->altitude, 2) . 'm' : '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Speed</th>
+                        <td>{{ $record->speed ? number_format($record->speed, 2) . ' m/s' : '-' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Location Age</th>
+                        <td>{{ $record->location_age_ms ? number_format($record->location_age_ms / 1000, 2) . 's' : '-' }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
     </div>
 
     <div class="col-md-4">

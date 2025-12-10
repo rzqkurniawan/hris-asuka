@@ -24,6 +24,18 @@ class AttendanceRecord extends Model
         'face_image_path',
         'device_info',
         'attendance_date',
+        // Anti-fake GPS fields
+        'is_mock_location',
+        'is_rooted',
+        'wifi_ssid',
+        'wifi_bssid',
+        'gps_accuracy',
+        'location_age_ms',
+        'location_provider',
+        'altitude',
+        'speed',
+        'suspicious_flags',
+        'is_suspicious',
     ];
 
     protected $casts = [
@@ -33,6 +45,15 @@ class AttendanceRecord extends Model
         'face_verified' => 'boolean',
         'face_confidence' => 'decimal:2',
         'attendance_date' => 'date',
+        // Anti-fake GPS casts
+        'is_mock_location' => 'boolean',
+        'is_rooted' => 'boolean',
+        'gps_accuracy' => 'decimal:2',
+        'location_age_ms' => 'integer',
+        'altitude' => 'decimal:2',
+        'speed' => 'decimal:2',
+        'suspicious_flags' => 'array',
+        'is_suspicious' => 'boolean',
     ];
 
     const CHECK_TYPE_IN = 'check_in';
@@ -188,5 +209,83 @@ class AttendanceRecord extends Model
         }
 
         return asset('storage/' . $this->face_image_path);
+    }
+
+    /**
+     * Scope for suspicious records
+     */
+    public function scopeSuspicious($query)
+    {
+        return $query->where('is_suspicious', true);
+    }
+
+    /**
+     * Scope for mock location records
+     */
+    public function scopeMockLocation($query)
+    {
+        return $query->where('is_mock_location', true);
+    }
+
+    /**
+     * Scope for records from rooted devices
+     */
+    public function scopeRootedDevice($query)
+    {
+        return $query->where('is_rooted', true);
+    }
+
+    /**
+     * Determine suspicious behaviors based on location data
+     * Returns array of suspicious flags
+     */
+    public static function detectSuspiciousBehavior(array $locationData): array
+    {
+        $suspiciousFlags = [];
+
+        // Flag 1: Mock location enabled
+        if (!empty($locationData['is_mock_location'])) {
+            $suspiciousFlags[] = 'mock_location_enabled';
+        }
+
+        // Flag 2: Rooted/Jailbroken device
+        if (!empty($locationData['is_rooted'])) {
+            $suspiciousFlags[] = 'rooted_device';
+        }
+
+        // Flag 3: GPS accuracy too low (> 100 meters is suspicious)
+        if (isset($locationData['gps_accuracy']) && $locationData['gps_accuracy'] > 100) {
+            $suspiciousFlags[] = 'low_gps_accuracy';
+        }
+
+        // Flag 4: Location data too old (> 30 seconds)
+        if (isset($locationData['location_age_ms']) && $locationData['location_age_ms'] > 30000) {
+            $suspiciousFlags[] = 'stale_location_data';
+        }
+
+        // Flag 5: Unrealistic speed (> 50 m/s = 180 km/h while checking in)
+        if (isset($locationData['speed']) && $locationData['speed'] > 50) {
+            $suspiciousFlags[] = 'unrealistic_speed';
+        }
+
+        // Flag 6: No WiFi connected when in office (optional, depends on implementation)
+        // This would need to compare with known office WiFi SSIDs
+
+        return $suspiciousFlags;
+    }
+
+    /**
+     * Check if attendance should be flagged as suspicious
+     */
+    public static function shouldFlagAsSuspicious(array $locationData): bool
+    {
+        // Immediate red flags - always suspicious
+        if (!empty($locationData['is_mock_location'])) {
+            return true;
+        }
+
+        // Multiple minor flags make it suspicious
+        $suspiciousFlags = self::detectSuspiciousBehavior($locationData);
+        return count($suspiciousFlags) >= 2;
     }
 }

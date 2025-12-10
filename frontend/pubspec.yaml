@@ -58,6 +58,9 @@ dependencies:
   # Permission Handler
   permission_handler: ^11.2.0
 
+  # Network Info (for WiFi detection)
+  network_info_plus: ^5.0.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

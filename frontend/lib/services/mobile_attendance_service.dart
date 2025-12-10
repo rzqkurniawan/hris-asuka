@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import '../config/api_config.dart';
 import 'api_client.dart';
+import 'device_security_service.dart';
 
 class MobileAttendanceService {
   final ApiClient _apiClient = ApiClient();
@@ -92,18 +93,27 @@ class MobileAttendanceService {
     required String faceImageBase64,
     required double faceConfidence,
     String? deviceInfo,
+    ExtendedLocationData? securityData, // Anti-fake GPS data
   }) async {
     try {
+      // Build request data
+      final Map<String, dynamic> data = {
+        'check_type': checkType,
+        'latitude': latitude,
+        'longitude': longitude,
+        'face_image': faceImageBase64,
+        'face_confidence': faceConfidence,
+        'device_info': deviceInfo,
+      };
+
+      // Add security data if available
+      if (securityData != null) {
+        data.addAll(securityData.toApiMap());
+      }
+
       final response = await _apiClient.post(
         '${ApiConfig.mobileAttendance}/submit',
-        data: {
-          'check_type': checkType,
-          'latitude': latitude,
-          'longitude': longitude,
-          'face_image': faceImageBase64,
-          'face_confidence': faceConfidence,
-          'device_info': deviceInfo,
-        },
+        data: data,
       );
 
       return AttendanceSubmitResult.fromJson(
