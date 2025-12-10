@@ -30,6 +30,7 @@ class _HomePageState extends State<HomePage> {
   MonthlySummary? _monthlySummary;
   bool _isLoadingStats = true;
   String? _statsError;
+  String _statsMonthName = '';
 
   @override
   void initState() {
@@ -46,15 +47,18 @@ class _HomePageState extends State<HomePage> {
     });
 
     try {
+      // Use previous month's data since current month data is still being updated
       final now = DateTime.now();
+      final previousMonth = DateTime(now.year, now.month - 1, 1);
       final summary = await _attendanceService.getAttendanceSummary(
-        month: now.month,
-        year: now.year,
+        month: previousMonth.month,
+        year: previousMonth.year,
       );
 
       if (mounted) {
         setState(() {
           _monthlySummary = summary;
+          _statsMonthName = summary.monthName;
           _isLoadingStats = false;
         });
       }
@@ -106,9 +110,11 @@ class _HomePageState extends State<HomePage> {
 
                   SizedBox(height: 20.h),
 
-                  // Section Title - Quick Stats
+                  // Section Title - Quick Stats (Previous Month)
                   _buildSectionTitle(
-                    'Statistik Bulan Ini',
+                    _statsMonthName.isNotEmpty
+                        ? 'Statistik $_statsMonthName'
+                        : 'Statistik Bulan Lalu',
                     Icons.bar_chart_rounded,
                     isDarkMode,
                   ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
