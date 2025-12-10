@@ -1,0 +1,65 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
+
+class EmployeePhotoController extends Controller
+{
+    /**
+     * Base path untuk employee photos di VM
+     */
+    private $photoBasePath = '/var/www/clients/client3/web5/web/protected/attachments/employeePhoto';
+
+    /**
+     * Get employee photo by filename
+     *
+     * @param string $filename
+     * @return BinaryFileResponse|\Illuminate\Http\JsonResponse
+     */
+    public function getPhoto($filename)
+    {
+        try {
+            // Sanitize filename untuk security (prevent directory traversal)
+            $filename = basename($filename);
+
+            // Build full path
+            $filePath = $this->photoBasePath . '/' . $filename;
+
+            // Check if file exists
+            if (!file_exists($filePath) || !is_file($filePath)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Photo not found'
+                ], 404);
+            }
+
+            // Get mime type
+            $mimeType = mime_content_type($filePath);
+
+            // Validate file type (hanya allow image files)
+            $allowedMimeTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            if (!in_array(strtolower($mimeType), $allowedMimeTypes)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid file type'
+                ], 400);
+            }
+
+            // Return file dengan proper headers
+            return response()->file($filePath, [
+                'Content-Type' => $mimeType,
+                'Cache-Control' => 'public, max-age=86400', // Cache 1 day
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve photo',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+}

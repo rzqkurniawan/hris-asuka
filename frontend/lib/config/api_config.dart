@@ -1,0 +1,45 @@
+class ApiConfig {
+  // Base URL - Laravel API server
+  static const String baseUrl = 'http://112.109.16.46/api';
+
+  // API Endpoints
+  static const String healthCheck = '/health';
+
+  // Auth Endpoints
+  static const String employees = '/auth/employees';
+  static const String register = '/auth/register';
+  static const String login = '/auth/login';
+  static const String logout = '/auth/logout';
+  static const String me = '/auth/me';
+  static const String refreshToken = '/auth/refresh';
+
+  // Profile Endpoints (future implementation)
+  static const String profile = '/profile';
+
+  // Overtime Endpoints (future implementation)
+  static const String overtime = '/overtime';
+
+  // Leave Endpoints (future implementation)
+  static const String leave = '/leave';
+
+  // Attendance Endpoints (future implementation)
+  static const String attendance = '/attendance';
+
+  // Payslip Endpoints (future implementation)
+  static const String payslip = '/payslip';
+
+  // API Timeouts
+  static const Duration connectionTimeout = Duration(seconds: 60);
+  static const Duration receiveTimeout = Duration(seconds: 60);
+
+  // Storage Keys
+  static const String tokenKey = 'auth_token';
+  static const String refreshTokenKey = 'refresh_token';
+  static const String userDataKey = 'user_data';
+  static const String deviceIdKey = 'device_id';
+
+  // Get full URL
+  static String getUrl(String endpoint) {
+    return '$baseUrl$endpoint';
+  }
+}
