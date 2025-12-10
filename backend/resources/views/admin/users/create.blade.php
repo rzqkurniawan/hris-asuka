@@ -20,10 +20,17 @@
                     @csrf
 
                     <div class="mb-3">
-                        <label class="form-label">Employee ID <span class="text-danger">*</span></label>
-                        <input type="number" name="employee_id" class="form-control @error('employee_id') is-invalid @enderror" value="{{ old('employee_id') }}" required>
+                        <label class="form-label">Select Employee <span class="text-danger">*</span></label>
+                        <select name="employee_id" id="employee_id" class="form-select @error('employee_id') is-invalid @enderror" required>
+                            <option value="">-- Search and Select Employee --</option>
+                            @foreach($employees as $employee)
+                                <option value="{{ $employee->employee_id }}" {{ old('employee_id') == $employee->employee_id ? 'selected' : '' }}>
+                                    {{ $employee->employee_number }} - {{ $employee->fullname }}
+                                </option>
+                            @endforeach
+                        </select>
                         @error('employee_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        <small class="text-muted">Enter employee ID from database</small>
+                        <small class="text-muted">Only showing active employees without existing accounts ({{ count($employees) }} available)</small>
                     </div>
 
                     <div class="mb-3">
@@ -62,5 +69,49 @@
             </div>
         </div>
     </div>
+
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Information</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>Available Employees:</strong> {{ count($employees) }}</p>
+                <hr>
+                <small class="text-muted">
+                    <ul class="mb-0 ps-3">
+                        <li>Only active employees are shown</li>
+                        <li>Employees with existing accounts are excluded</li>
+                        <li>Use the search to find employees quickly</li>
+                    </ul>
+                </small>
+            </div>
+        </div>
+    </div>
 </div>
 @endsection
+
+@push('styles')
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<style>
+    .select2-container--bootstrap-5 .select2-selection {
+        min-height: 38px;
+    }
+</style>
+@endpush
+
+@push('scripts')
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#employee_id').select2({
+        theme: 'bootstrap-5',
+        placeholder: '-- Search and Select Employee --',
+        allowClear: true,
+        width: '100%'
+    });
+});
+</script>
+@endpush

@@ -5,7 +5,7 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2>📊 Dashboard</h2>
-    <small class="text-muted">Welcome, {{ auth()->user()->username }}</small>
+    <small class="text-muted">Welcome, {{ auth()->guard('web')->user()->username }}</small>
 </div>
 
 <div class="row g-3 mb-4">

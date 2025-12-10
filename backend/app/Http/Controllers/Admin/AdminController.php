@@ -15,7 +15,7 @@ class AdminController extends Controller
     // Show login form
     public function showLogin()
     {
-        if (Auth::check() && Auth::user()->is_admin) {
+        if (Auth::guard('web')->check() && Auth::guard('web')->user()->is_admin) {
             return redirect()->route('admin.dashboard');
         }
         return view('admin.login');
@@ -29,11 +29,13 @@ class AdminController extends Controller
             'password' => 'required',
         ]);
 
-        if (Auth::attempt(['username' => $request->username, 'password' => $request->password])) {
-            if (Auth::user()->is_admin) {
+        if (Auth::guard('web')->attempt(['username' => $request->username, 'password' => $request->password])) {
+            $request->session()->regenerate();
+
+            if (Auth::guard('web')->user()->is_admin) {
                 return redirect()->route('admin.dashboard');
             }
-            Auth::logout();
+            Auth::guard('web')->logout();
             return back()->with('error', 'You are not authorized to access admin panel');
         }
 
@@ -41,9 +43,11 @@ class AdminController extends Controller
     }
 
     // Logout
-    public function logout()
+    public function logout(Request $request)
     {
-        Auth::logout();
+        Auth::guard('web')->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
         return redirect()->route('admin.login');
     }
 
@@ -87,7 +91,18 @@ class AdminController extends Controller
     // Show create form
     public function createUser()
     {
-        return view('admin.users.create');
+        // Get employees who don't have user accounts yet
+        $existingEmployeeIds = User::whereNotNull('employee_id')->pluck('employee_id')->toArray();
+
+        $employees = DB::connection('c3ais')
+            ->table('ki_employee')
+            ->where('working_status', 'Active')
+            ->whereNotIn('employee_id', $existingEmployeeIds)
+            ->select('employee_id', 'employee_number', 'fullname')
+            ->orderBy('fullname')
+            ->get();
+
+        return view('admin.users.create', compact('employees'));
     }
 
     // Store new user
