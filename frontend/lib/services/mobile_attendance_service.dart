@@ -116,16 +116,37 @@ class MobileAttendanceService {
         data: data,
       );
 
-      return AttendanceSubmitResult.fromJson(
-          response.data as Map<String, dynamic>);
-    } catch (e) {
-      if (e is ApiException) {
+      // Safely parse response data
+      if (response.data == null) {
         return AttendanceSubmitResult(
           success: false,
-          message: e.message,
+          message: 'Empty response from server',
         );
       }
-      throw Exception('Failed to submit attendance: ${e.toString()}');
+
+      // Handle response data - could be Map or other type
+      if (response.data is Map) {
+        return AttendanceSubmitResult.fromJson(
+            Map<String, dynamic>.from(response.data as Map));
+      } else {
+        return AttendanceSubmitResult(
+          success: false,
+          message: 'Invalid response format: ${response.data.runtimeType}',
+        );
+      }
+    } on ApiException catch (e) {
+      return AttendanceSubmitResult(
+        success: false,
+        message: e.message,
+      );
+    } catch (e) {
+      // Log error for debugging
+      print('Submit attendance error: $e');
+      print('Error type: ${e.runtimeType}');
+      return AttendanceSubmitResult(
+        success: false,
+        message: 'Gagal menyimpan absensi: ${e.toString()}',
+      );
     }
   }
 
@@ -365,20 +386,50 @@ class AttendanceSubmitResult {
   });
 
   factory AttendanceSubmitResult.fromJson(Map<String, dynamic> json) {
-    final data = json['data'] as Map<String, dynamic>?;
+    // Defensive parsing - handle various response formats
+    final bool success = json['success'] == true;
+    final String message = json['message']?.toString() ?? 'Unknown response';
+
+    // Parse data field safely
+    Map<String, dynamic>? data;
+    if (json['data'] != null && json['data'] is Map) {
+      data = Map<String, dynamic>.from(json['data'] as Map);
+    }
+
+    // Parse id safely - handle both int and String
+    int? id;
+    if (data?['id'] != null) {
+      final idValue = data!['id'];
+      if (idValue is int) {
+        id = idValue;
+      } else if (idValue is String) {
+        id = int.tryParse(idValue);
+      }
+    }
+
+    // Parse face_confidence safely
+    double? faceConfidence;
+    if (data?['face_confidence'] != null) {
+      final confValue = data!['face_confidence'];
+      if (confValue is double) {
+        faceConfidence = confValue;
+      } else if (confValue is int) {
+        faceConfidence = confValue.toDouble();
+      } else if (confValue is String) {
+        faceConfidence = double.tryParse(confValue);
+      }
+    }
 
     return AttendanceSubmitResult(
-      success: json['success'] as bool,
-      message: json['message'] as String,
-      id: data?['id'] as int?,
-      checkType: data?['check_type'] as String?,
-      time: data?['time'] as String?,
-      location: data?['location'] as String?,
-      locationVerified: data?['location_verified'] as bool?,
-      faceVerified: data?['face_verified'] as bool?,
-      faceConfidence: data?['face_confidence'] != null
-          ? double.parse(data!['face_confidence'].toString())
-          : null,
+      success: success,
+      message: message,
+      id: id,
+      checkType: data?['check_type']?.toString(),
+      time: data?['time']?.toString(),
+      location: data?['location']?.toString(),
+      locationVerified: data?['location_verified'] == true,
+      faceVerified: data?['face_verified'] == true,
+      faceConfidence: faceConfidence,
     );
   }
 }

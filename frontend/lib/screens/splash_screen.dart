@@ -123,7 +123,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Image.asset(
-                    'assets/logo/HRIS_LOGO.png',
+                    'assets/logo/HRIS_LOGO_NEW.png',
                     fit: BoxFit.contain,
                   ),
                 ),

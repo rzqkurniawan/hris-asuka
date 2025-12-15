@@ -101,7 +101,7 @@ class _MainScreenState extends State<MainScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(6.r),
                 child: Image.asset(
-                  'assets/logo/HRIS_LOGO.png',
+                  'assets/logo/HRIS_LOGO_NEW.png',
                   width: 28.w,
                   height: 28.w,
                   fit: BoxFit.contain,

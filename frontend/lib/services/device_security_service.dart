@@ -259,15 +259,15 @@ class ExtendedLocationData {
   /// Convert to Map for API submission
   Map<String, dynamic> toApiMap() {
     return {
-      'is_mock_location': isMockLocation,
-      'is_rooted': isRooted,
+      'is_mock_location': isMockLocation ? 1 : 0, // Send as int for PHP compatibility
+      'is_rooted': isRooted ? 1 : 0, // Send as int for PHP compatibility
       'wifi_ssid': wifiSsid,
       'wifi_bssid': wifiBssid,
-      'gps_accuracy': accuracy,
+      'gps_accuracy': accuracy.isFinite ? accuracy : null, // Handle NaN/Infinity
       'location_age_ms': locationAgeMs,
       'location_provider': locationProvider,
-      'altitude': altitude,
-      'speed': speed,
+      'altitude': altitude.isFinite ? altitude : null, // Handle NaN/Infinity
+      'speed': speed.isFinite ? speed : null, // Handle NaN/Infinity
     };
   }
 }
