@@ -121,9 +121,9 @@ class _SplashScreenState extends State<SplashScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(28),
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(8),
                   child: Image.asset(
-                    'assets/logo/HRIS_LOGO_NEW.png',
+                    'assets/logo/HRIS_LOGO_SPLASH.png',
                     fit: BoxFit.contain,
                   ),
                 ),

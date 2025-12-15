@@ -126,9 +126,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(18),
                       child: Padding(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(6),
                         child: Image.asset(
-                          'assets/logo/HRIS_LOGO_NEW.png',
+                          'assets/logo/HRIS_LOGO_SPLASH.png',
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) {
                             return Icon(

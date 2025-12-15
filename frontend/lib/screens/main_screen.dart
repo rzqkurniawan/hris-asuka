@@ -91,21 +91,23 @@ class _MainScreenState extends State<MainScreen> {
         title: Row(
           children: [
             Container(
-              padding: EdgeInsets.all(8.w),
+              padding: EdgeInsets.all(6.w),
               decoration: BoxDecoration(
-                color: isDarkMode
-                    ? AppColors.surfaceAltDark
-                    : AppColors.accent.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12.r),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10.r),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(6.r),
-                child: Image.asset(
-                  'assets/logo/HRIS_LOGO_NEW.png',
-                  width: 28.w,
-                  height: 28.w,
-                  fit: BoxFit.contain,
-                ),
+              child: Image.asset(
+                'assets/logo/HRIS_LOGO_SPLASH.png',
+                width: 32.w,
+                height: 32.w,
+                fit: BoxFit.contain,
               ),
             ),
             SizedBox(width: 12.w),

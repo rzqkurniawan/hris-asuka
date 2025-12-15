@@ -71,24 +71,24 @@ dev_dependencies:
 # Native Splash Screen Configuration
 flutter_native_splash:
   color: "#ffffff"
-  image: assets/logo/HRIS_LOGO_NEW.png
+  image: assets/logo/HRIS_LOGO_SPLASH.png
   color_dark: "#1a1a2e"
-  image_dark: assets/logo/HRIS_LOGO_NEW.png
+  image_dark: assets/logo/HRIS_LOGO_SPLASH.png
   android_12:
     color: "#ffffff"
     icon_background_color: "#ffffff"
-    image: assets/logo/HRIS_LOGO_NEW.png
+    image: assets/logo/splash_android12.png
     color_dark: "#1a1a2e"
     icon_background_color_dark: "#1a1a2e"
-    image_dark: assets/logo/HRIS_LOGO_NEW.png
+    image_dark: assets/logo/splash_android12.png
 
 # App Icon Configuration
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: "assets/logo/HRIS_LOGO_NEW.png"
+  image_path: "assets/logo/ic_launcher.png"
   adaptive_icon_background: "#ffffff"
-  adaptive_icon_foreground: "assets/logo/HRIS_LOGO_NEW.png"
+  adaptive_icon_foreground: "assets/logo/ic_launcher_foreground.png"
 
 flutter:
   uses-material-design: true
