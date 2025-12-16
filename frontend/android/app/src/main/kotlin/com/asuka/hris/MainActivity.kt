@@ -1,4 +1,4 @@
-package com.example.hris_asuka
+package com.asuka.hris
 
 import io.flutter.embedding.android.FlutterActivity
 
