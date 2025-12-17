@@ -178,7 +178,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: Padding(
                         padding: const EdgeInsets.all(6),
                         child: Image.asset(
-                          'assets/logo/HRIS_LOGO_SPLASH.png',
+                          'assets/logo/HRIS_LOGO_NEW.png',
                           fit: BoxFit.contain,
                         ),
                       ),

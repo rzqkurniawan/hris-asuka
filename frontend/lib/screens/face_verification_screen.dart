@@ -1,13 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:image/image.dart' as img;
 import '../constants/app_colors.dart';
 import '../services/mobile_attendance_service.dart';
 import '../services/device_security_service.dart';
@@ -87,6 +86,9 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
   static const int _historySize = 15;
   bool _naturalMovementDetected = false;
 
+  // Flag to prevent setState after dispose
+  bool _isDisposed = false;
+
   @override
   void initState() {
     super.initState();
@@ -156,6 +158,77 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
       performanceMode: FaceDetectorMode.accurate,
     );
     _faceDetector = FaceDetector(options: options);
+  }
+
+  Future<InputImage?> _createInputImageFromFile(XFile imageFile) async {
+    try {
+      final bytes = await imageFile.readAsBytes();
+
+      // Decode image to get dimensions
+      final decodedImage = img.decodeImage(bytes);
+      if (decodedImage == null) {
+        return InputImage.fromFilePath(imageFile.path);
+      }
+
+      // For iOS front camera, we need to handle orientation
+      if (Platform.isIOS) {
+        // Use bytes with metadata for better iOS compatibility
+        final inputImageData = InputImageMetadata(
+          size: Size(decodedImage.width.toDouble(), decodedImage.height.toDouble()),
+          rotation: InputImageRotation.rotation0deg,
+          format: InputImageFormat.nv21,
+          bytesPerRow: decodedImage.width,
+        );
+
+        // Try file path first, then fallback to bytes if detection fails
+        return InputImage.fromFilePath(imageFile.path);
+      }
+
+      return InputImage.fromFilePath(imageFile.path);
+    } catch (e) {
+      print('Error creating InputImage: $e');
+      return InputImage.fromFilePath(imageFile.path);
+    }
+  }
+
+  Future<List<Face>> _detectFacesFromFile(XFile imageFile) async {
+    try {
+      // First try with file path
+      var inputImage = InputImage.fromFilePath(imageFile.path);
+      var faces = await _faceDetector!.processImage(inputImage);
+
+      if (faces.isEmpty && Platform.isIOS) {
+        // On iOS, try with processed bytes if file path fails
+        final bytes = await imageFile.readAsBytes();
+        final decodedImage = img.decodeImage(bytes);
+
+        if (decodedImage != null) {
+          // Fix orientation for front camera (mirror horizontal)
+          var processedImage = img.flipHorizontal(decodedImage);
+
+          // Encode back to JPEG
+          final processedBytes = Uint8List.fromList(img.encodeJpg(processedImage));
+
+          // Save to temp file
+          final tempDir = Directory.systemTemp;
+          final tempFile = File('${tempDir.path}/face_detect_temp_${DateTime.now().millisecondsSinceEpoch}.jpg');
+          await tempFile.writeAsBytes(processedBytes);
+
+          inputImage = InputImage.fromFilePath(tempFile.path);
+          faces = await _faceDetector!.processImage(inputImage);
+
+          // Clean up temp file
+          try {
+            await tempFile.delete();
+          } catch (_) {}
+        }
+      }
+
+      return faces;
+    } catch (e) {
+      print('Error detecting faces: $e');
+      return [];
+    }
   }
 
   Future<void> _loadEmployeeAvatar() async {
@@ -453,9 +526,10 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
 
   @override
   void dispose() {
+    _isDisposed = true;
     WidgetsBinding.instance.removeObserver(this);
-    _stopLivenessDetection();
     _livenessTimer?.cancel();
+    _stopFaceStreaming();
     _cameraController?.dispose();
     _faceDetector?.close();
     super.dispose();
@@ -485,7 +559,7 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
     // Start timeout timer
     _livenessTimer?.cancel();
     _livenessTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
+      if (!mounted || _isDisposed) {
         timer.cancel();
         return;
       }
@@ -507,7 +581,7 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
   void _stopLivenessDetection() {
     _livenessTimer?.cancel();
     _stopFaceStreaming();
-    if (mounted) {
+    if (mounted && !_isDisposed) {
       setState(() {
         _isLivenessMode = false;
         _isStreamingFaces = false;
@@ -517,7 +591,7 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
 
   void _onLivenessTimeout() {
     _stopLivenessDetection();
-    if (mounted) {
+    if (mounted && !_isDisposed) {
       setState(() {
         _errorMessage =
             'Verifikasi gagal: Waktu habis. Pastikan Anda mengedipkan mata dan menggerakkan kepala sedikit.';
@@ -565,7 +639,7 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
       print('Error stopping image stream: $e');
     }
 
-    if (mounted) {
+    if (mounted && !_isDisposed) {
       setState(() {
         _isStreamingFaces = false;
       });
@@ -575,7 +649,7 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
   bool _isProcessingFrame = false;
 
   Future<void> _processFrameForLiveness(CameraImage image) async {
-    if (_isProcessingFrame || !mounted) return;
+    if (_isProcessingFrame || !mounted || _isDisposed) return;
     _isProcessingFrame = true;
 
     try {
@@ -587,7 +661,7 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
 
       final faces = await _faceDetector!.processImage(inputImage);
 
-      if (!mounted || !_isLivenessMode) {
+      if (!mounted || _isDisposed || !_isLivenessMode) {
         _isProcessingFrame = false;
         return;
       }
@@ -787,8 +861,9 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
       }
 
       final XFile imageFile = await _cameraController!.takePicture();
-      final inputImage = InputImage.fromFilePath(imageFile.path);
-      final List<Face> faces = await _faceDetector!.processImage(inputImage);
+
+      // Use helper method for better iOS compatibility
+      final List<Face> faces = await _detectFacesFromFile(imageFile);
 
       if (faces.isEmpty) {
         setState(() {
@@ -872,46 +947,48 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
       );
     }
 
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // Location Info
-            _buildLocationInfo(isDarkMode),
-            const SizedBox(height: 20),
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+          child: Column(
+            children: [
+              // Location Info
+              _buildLocationInfo(isDarkMode),
+              const SizedBox(height: 16),
 
-            // Camera Preview or Captured Image
-            _buildCameraSection(isDarkMode),
-            const SizedBox(height: 16),
+              // Camera Preview or Captured Image
+              _buildCameraSection(isDarkMode),
+              const SizedBox(height: 12),
 
-            // Error Message
-            if (_errorMessage != null)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.warning, color: Colors.red),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        _errorMessage!,
-                        style: const TextStyle(color: Colors.red),
+              // Error Message
+              if (_errorMessage != null)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withAlpha(25),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.warning, color: Colors.red),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(color: Colors.red),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 16),
 
-            // Action Buttons
-            _buildActionButtons(isDarkMode),
-          ],
+              // Action Buttons
+              _buildActionButtons(isDarkMode),
+            ],
+          ),
         ),
       ),
     );
@@ -1027,25 +1104,27 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
                     ),
                   ),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       // Timer and Progress at top
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
-                          vertical: 12,
+                          vertical: 10,
                         ),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.topCenter,
                             end: Alignment.bottomCenter,
                             colors: [
-                              Colors.black.withOpacity(0.7),
+                              Colors.black.withAlpha(178),
                               Colors.transparent,
                             ],
                           ),
                         ),
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             // Timer
                             Row(
@@ -1056,22 +1135,22 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
                                   color: _livenessTimeRemaining <= 3
                                       ? Colors.red
                                       : Colors.white,
-                                  size: 20,
+                                  size: 18,
                                 ),
-                                const SizedBox(width: 6),
+                                const SizedBox(width: 4),
                                 Text(
                                   '${_livenessTimeRemaining}s',
                                   style: TextStyle(
                                     color: _livenessTimeRemaining <= 3
                                         ? Colors.red
                                         : Colors.white,
-                                    fontSize: 18,
+                                    fontSize: 16,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 6),
                             // Progress indicators
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -1081,7 +1160,7 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
                                   _blinkCount >= _requiredBlinks,
                                   '$_blinkCount/$_requiredBlinks',
                                 ),
-                                const SizedBox(width: 16),
+                                const SizedBox(width: 12),
                                 _buildLivenessCheckItem(
                                   'Gerakan',
                                   _headMovementDetected || _naturalMovementDetected,
@@ -1096,29 +1175,32 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
                       ),
                       const Spacer(),
                       // Face guide oval
-                      CustomPaint(
-                        size: const Size(200, 260),
-                        painter: LivenessFaceGuidePainter(
-                          isVerified: _livenessVerified,
-                          blinkProgress: _blinkCount / _requiredBlinks,
+                      Flexible(
+                        child: CustomPaint(
+                          size: const Size(180, 240),
+                          painter: LivenessFaceGuidePainter(
+                            isVerified: _livenessVerified,
+                            blinkProgress: _blinkCount / _requiredBlinks,
+                          ),
                         ),
                       ),
                       const Spacer(),
                       // Instruction at bottom
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             begin: Alignment.bottomCenter,
                             end: Alignment.topCenter,
                             colors: [
-                              Colors.black.withOpacity(0.7),
+                              Colors.black.withAlpha(178),
                               Colors.transparent,
                             ],
                           ),
                         ),
                         child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               _livenessVerified
@@ -1127,27 +1209,27 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
                               color: _livenessVerified
                                   ? Colors.green
                                   : Colors.orange,
-                              size: 32,
+                              size: 28,
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 6),
                             Text(
                               _livenessInstruction,
                               textAlign: TextAlign.center,
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 16,
+                                fontSize: 14,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                             if (!_livenessVerified)
                               Padding(
-                                padding: const EdgeInsets.only(top: 4),
+                                padding: const EdgeInsets.only(top: 2),
                                 child: Text(
                                   'Gerakkan kepala sedikit ke kiri/kanan',
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: Colors.white.withOpacity(0.8),
-                                    fontSize: 12,
+                                    color: Colors.white.withAlpha(204),
+                                    fontSize: 11,
                                   ),
                                 ),
                               ),

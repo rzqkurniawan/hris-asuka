@@ -93,21 +93,26 @@ class _MainScreenState extends State<MainScreen> {
             Container(
               padding: EdgeInsets.all(6.w),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: isDarkMode ? AppColors.surfaceAltDark : Colors.white,
                 borderRadius: BorderRadius.circular(10.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                boxShadow: isDarkMode
+                    ? null
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(20),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
               ),
-              child: Image.asset(
-                'assets/logo/HRIS_LOGO_SPLASH.png',
-                width: 32.w,
-                height: 32.w,
-                fit: BoxFit.contain,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(6.r),
+                child: Image.asset(
+                  'assets/logo/HRIS_LOGO_NEW.png',
+                  width: 32.w,
+                  height: 32.w,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
             SizedBox(width: 12.w),

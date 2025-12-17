@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants/app_colors.dart';
 import '../utils/toast_utils.dart';
 import '../utils/page_transitions.dart';
@@ -19,15 +20,58 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _secureStorage = const FlutterSecureStorage();
+
+  static const _keyUsername = 'saved_username';
+  static const _keyPassword = 'saved_password';
+  static const _keyRememberMe = 'remember_me';
+
   bool _rememberMe = false;
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedCredentials();
+  }
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadSavedCredentials() async {
+    final rememberMe = await _secureStorage.read(key: _keyRememberMe);
+    if (rememberMe == 'true') {
+      final username = await _secureStorage.read(key: _keyUsername);
+      final password = await _secureStorage.read(key: _keyPassword);
+      if (mounted) {
+        setState(() {
+          _rememberMe = true;
+          if (username != null) _usernameController.text = username;
+          if (password != null) _passwordController.text = password;
+        });
+      }
+    }
+  }
+
+  Future<void> _saveCredentials() async {
+    if (_rememberMe) {
+      await _secureStorage.write(key: _keyUsername, value: _usernameController.text.trim());
+      await _secureStorage.write(key: _keyPassword, value: _passwordController.text);
+      await _secureStorage.write(key: _keyRememberMe, value: 'true');
+    } else {
+      await _clearSavedCredentials();
+    }
+  }
+
+  Future<void> _clearSavedCredentials() async {
+    await _secureStorage.delete(key: _keyUsername);
+    await _secureStorage.delete(key: _keyPassword);
+    await _secureStorage.delete(key: _keyRememberMe);
   }
 
   Future<void> _handleLogin() async {
@@ -47,6 +91,9 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted) {
+        // Save credentials if remember me is checked
+        await _saveCredentials();
+
         // Update auth provider
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         authProvider.setUser(user);
@@ -128,7 +175,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Padding(
                         padding: const EdgeInsets.all(6),
                         child: Image.asset(
-                          'assets/logo/HRIS_LOGO_SPLASH.png',
+                          'assets/logo/HRIS_LOGO_NEW.png',
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) {
                             return Icon(
