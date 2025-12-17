@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:camera/camera.dart';
@@ -10,6 +11,14 @@ import 'package:image/image.dart' as img;
 import '../constants/app_colors.dart';
 import '../services/mobile_attendance_service.dart';
 import '../services/device_security_service.dart';
+
+/// Random challenge types for anti-spoofing liveness detection
+enum LivenessChallenge {
+  blink,      // Kedipkan mata
+  turnLeft,   // Putar kepala ke kiri
+  turnRight,  // Putar kepala ke kanan
+  smile,      // Tersenyum
+}
 
 class FaceVerificationScreen extends StatefulWidget {
   final String checkType;
@@ -59,32 +68,31 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
   bool _livenessVerified = false;
   bool _isStreamingFaces = false;
 
+  // Random challenge system for anti-video-replay attack
+  List<LivenessChallenge> _challenges = [];
+  int _currentChallengeIndex = 0;
+  static const int _totalChallenges = 2; // Number of random challenges to complete
+
   // Eye blink detection
-  int _blinkCount = 0;
-  static const int _requiredBlinks = 2;
   bool _eyesWereClosed = false;
-  double _lastLeftEyeProb = 1.0;
-  double _lastRightEyeProb = 1.0;
   static const double _eyeClosedThreshold = 0.3;
   static const double _eyeOpenThreshold = 0.7;
+  int _requiredBlinkCount = 1; // Random 1-3 blinks required
+  int _currentBlinkCount = 0; // Current blink count
 
-  // Head movement detection
-  bool _headMovementDetected = false;
-  double? _initialHeadAngleY;
-  double _maxHeadAngleChange = 0.0;
-  static const double _requiredHeadMovement = 12.0;
+  // Head turn detection
+  double? _baselineHeadAngleY;
+  static const double _headTurnThreshold = 30.0; // degrees to turn (increased for more noticeable turn)
 
-  // Liveness progress tracking
+  // Smile detection
+  static const double _smileThreshold = 0.7;
+
+  // Challenge completion tracking
+  bool _currentChallengeCompleted = false;
   String _livenessInstruction = '';
   Timer? _livenessTimer;
-  int _livenessTimeRemaining = 10;
-  static const int _livenessTimeoutSeconds = 10;
-
-  // Multiple frame analysis for anti-spoofing
-  List<double> _faceAreaHistory = [];
-  List<double> _headAngleHistory = [];
-  static const int _historySize = 15;
-  bool _naturalMovementDetected = false;
+  int _livenessTimeRemaining = 20;
+  static const int _livenessTimeoutSeconds = 20; // More time for screen flash + challenges
 
   // Flag to prevent setState after dispose
   bool _isDisposed = false;
@@ -131,7 +139,11 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
         frontCamera,
         ResolutionPreset.high,
         enableAudio: false,
-        imageFormatGroup: ImageFormatGroup.jpeg,
+        // Use YUV420 for Android (needed for image streaming/ML Kit)
+        // Use BGRA8888 for iOS
+        imageFormatGroup: Platform.isAndroid
+            ? ImageFormatGroup.yuv420
+            : ImageFormatGroup.bgra8888,
       );
 
       await _cameraController!.initialize();
@@ -513,14 +525,11 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
       _errorMessage = null;
       // Reset liveness state
       _livenessVerified = false;
-      _blinkCount = 0;
+      _challenges.clear();
+      _currentChallengeIndex = 0;
+      _currentChallengeCompleted = false;
       _eyesWereClosed = false;
-      _headMovementDetected = false;
-      _naturalMovementDetected = false;
-      _initialHeadAngleY = null;
-      _maxHeadAngleChange = 0.0;
-      _faceAreaHistory.clear();
-      _headAngleHistory.clear();
+      _baselineHeadAngleY = null;
     });
   }
 
@@ -537,23 +546,145 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
 
   // ===== LIVENESS DETECTION METHODS =====
 
+  /// Generate random challenges for liveness detection
+  List<LivenessChallenge> _generateRandomChallenges() {
+    final random = Random();
+    final allChallenges = List<LivenessChallenge>.from(LivenessChallenge.values);
+    allChallenges.shuffle(random);
+    return allChallenges.take(_totalChallenges).toList();
+  }
+
+  /// Get instruction text for a challenge
+  String _getChallengeInstruction(LivenessChallenge challenge) {
+    switch (challenge) {
+      case LivenessChallenge.blink:
+        if (_requiredBlinkCount > 1) {
+          return 'Kedipkan mata $_currentBlinkCount/$_requiredBlinkCount kali';
+        }
+        return 'Kedipkan mata Anda';
+      case LivenessChallenge.turnLeft:
+        return 'Putar kepala ke KIRI';
+      case LivenessChallenge.turnRight:
+        return 'Putar kepala ke KANAN';
+      case LivenessChallenge.smile:
+        return 'Tersenyum';
+    }
+  }
+
+  /// Get icon for a challenge
+  IconData _getChallengeIcon(LivenessChallenge challenge) {
+    switch (challenge) {
+      case LivenessChallenge.blink:
+        return Icons.remove_red_eye;
+      case LivenessChallenge.turnLeft:
+        return Icons.turn_left;
+      case LivenessChallenge.turnRight:
+        return Icons.turn_right;
+      case LivenessChallenge.smile:
+        return Icons.sentiment_satisfied_alt;
+    }
+  }
+
+  /// Get simple instruction text for a challenge
+  String _getSimpleInstruction(LivenessChallenge challenge) {
+    switch (challenge) {
+      case LivenessChallenge.blink:
+        return _requiredBlinkCount > 1
+            ? 'Kedipkan Mata ${_currentBlinkCount}/${_requiredBlinkCount}'
+            : 'Kedipkan Mata';
+      case LivenessChallenge.turnLeft:
+        return 'Putar ke KIRI';
+      case LivenessChallenge.turnRight:
+        return 'Putar ke KANAN';
+      case LivenessChallenge.smile:
+        return 'Tersenyum';
+    }
+  }
+
+  /// Build animated icon only (without text) for center display
+  Widget _buildAnimatedIconOnly(LivenessChallenge challenge) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.9, end: 1.1),
+      duration: const Duration(milliseconds: 800),
+      curve: Curves.easeInOut,
+      builder: (context, scale, child) {
+        return Transform.scale(
+          scale: scale,
+          child: child,
+        );
+      },
+      onEnd: () {
+        // This creates the repeating animation effect
+        if (mounted) setState(() {});
+      },
+      child: _buildChallengeIconContainer(challenge),
+    );
+  }
+
+  Widget _buildChallengeIconContainer(LivenessChallenge challenge) {
+    IconData icon;
+    switch (challenge) {
+      case LivenessChallenge.blink:
+        icon = Icons.visibility;
+        break;
+      case LivenessChallenge.turnLeft:
+        icon = Icons.arrow_back_rounded;
+        break;
+      case LivenessChallenge.turnRight:
+        icon = Icons.arrow_forward_rounded;
+        break;
+      case LivenessChallenge.smile:
+        icon = Icons.sentiment_very_satisfied;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.accent.withAlpha(40),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: AppColors.accent,
+          width: 3,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.accent.withAlpha(50),
+            blurRadius: 20,
+            spreadRadius: 5,
+          ),
+        ],
+      ),
+      child: Icon(
+        icon,
+        color: AppColors.accent,
+        size: 50,
+      ),
+    );
+  }
+
   void _startLivenessDetection() {
     if (_isLivenessMode) return;
+
+    // Generate random challenges
+    final challenges = _generateRandomChallenges();
+    final random = Random();
+    // Random blink count between 1-3
+    final blinkCount = random.nextInt(3) + 1;
 
     setState(() {
       _isLivenessMode = true;
       _livenessVerified = false;
-      _blinkCount = 0;
+      _challenges = challenges;
+      _currentChallengeIndex = 0;
+      _currentChallengeCompleted = false;
       _eyesWereClosed = false;
-      _headMovementDetected = false;
-      _initialHeadAngleY = null;
-      _maxHeadAngleChange = 0.0;
-      _faceAreaHistory.clear();
-      _headAngleHistory.clear();
-      _naturalMovementDetected = false;
+      _baselineHeadAngleY = null;
       _livenessTimeRemaining = _livenessTimeoutSeconds;
-      _livenessInstruction = 'Kedipkan mata Anda 2x';
       _errorMessage = null;
+      _requiredBlinkCount = blinkCount;
+      _currentBlinkCount = 0;
+      _livenessInstruction = _getChallengeInstruction(challenges.first);
     });
 
     // Start timeout timer
@@ -584,7 +715,15 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
     if (mounted && !_isDisposed) {
       setState(() {
         _isLivenessMode = false;
+        _livenessVerified = false;
         _isStreamingFaces = false;
+        _challenges.clear();
+        _currentChallengeIndex = 0;
+        _currentChallengeCompleted = false;
+        _eyesWereClosed = false;
+        _baselineHeadAngleY = null;
+        _currentBlinkCount = 0;
+        _requiredBlinkCount = 1;
       });
     }
   }
@@ -619,7 +758,7 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
         _processFrameForLiveness(image);
       });
     } catch (e) {
-      print('Error starting image stream: $e');
+      // Error starting image stream - silently handle
       setState(() {
         _isStreamingFaces = false;
       });
@@ -636,7 +775,7 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
     try {
       await _cameraController!.stopImageStream();
     } catch (e) {
-      print('Error stopping image stream: $e');
+      // Error stopping image stream - silently handle
     }
 
     if (mounted && !_isDisposed) {
@@ -682,7 +821,7 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
       final face = faces.first;
       _analyzeFaceForLiveness(face);
     } catch (e) {
-      print('Error processing frame: $e');
+      // Error processing frame - silently handle
     }
 
     _isProcessingFrame = false;
@@ -695,152 +834,237 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
         orElse: () => _cameras!.first,
       );
 
-      final imageRotation = InputImageRotationValue.fromRawValue(
-        camera.sensorOrientation,
-      );
+      // Determine rotation based on platform and sensor orientation
+      InputImageRotation imageRotation;
+      if (Platform.isAndroid) {
+        // On Android front camera, we need to adjust rotation
+        final sensorOrientation = camera.sensorOrientation;
+        switch (sensorOrientation) {
+          case 0:
+            imageRotation = InputImageRotation.rotation0deg;
+            break;
+          case 90:
+            imageRotation = InputImageRotation.rotation90deg;
+            break;
+          case 180:
+            imageRotation = InputImageRotation.rotation180deg;
+            break;
+          case 270:
+            imageRotation = InputImageRotation.rotation270deg;
+            break;
+          default:
+            imageRotation = InputImageRotation.rotation0deg;
+        }
+      } else {
+        final rotation = InputImageRotationValue.fromRawValue(
+          camera.sensorOrientation,
+        );
+        if (rotation == null) return null;
+        imageRotation = rotation;
+      }
 
-      if (imageRotation == null) return null;
-
-      final format = InputImageFormatValue.fromRawValue(image.format.raw);
-      if (format == null) return null;
-
-      // For YUV420 format (most common on Android)
       if (image.planes.isEmpty) return null;
 
-      final plane = image.planes.first;
-      final bytes = plane.bytes;
+      // Handle different image formats
+      if (Platform.isAndroid) {
+        // Android uses YUV420 format - convert to NV21 for ML Kit
+        final nv21Bytes = _convertYUV420ToNV21(image);
+        if (nv21Bytes == null) return null;
 
-      return InputImage.fromBytes(
-        bytes: bytes,
-        metadata: InputImageMetadata(
-          size: Size(image.width.toDouble(), image.height.toDouble()),
-          rotation: imageRotation,
-          format: format,
-          bytesPerRow: plane.bytesPerRow,
-        ),
-      );
+        return InputImage.fromBytes(
+          bytes: nv21Bytes,
+          metadata: InputImageMetadata(
+            size: Size(image.width.toDouble(), image.height.toDouble()),
+            rotation: imageRotation,
+            format: InputImageFormat.nv21,
+            bytesPerRow: image.width,
+          ),
+        );
+      } else {
+        // iOS uses BGRA8888 format
+        final format = InputImageFormatValue.fromRawValue(image.format.raw);
+        if (format == null) return null;
+
+        final plane = image.planes.first;
+        return InputImage.fromBytes(
+          bytes: plane.bytes,
+          metadata: InputImageMetadata(
+            size: Size(image.width.toDouble(), image.height.toDouble()),
+            rotation: imageRotation,
+            format: format,
+            bytesPerRow: plane.bytesPerRow,
+          ),
+        );
+      }
     } catch (e) {
-      print('Error converting image: $e');
+      return null;
+    }
+  }
+
+  /// Convert YUV420 camera image to NV21 format for ML Kit on Android
+  Uint8List? _convertYUV420ToNV21(CameraImage image) {
+    try {
+      final int width = image.width;
+      final int height = image.height;
+      final int ySize = width * height;
+      final int uvSize = width * height ~/ 2;
+
+      final nv21 = Uint8List(ySize + uvSize);
+
+      // Copy Y plane
+      final yPlane = image.planes[0];
+      int yIndex = 0;
+      for (int row = 0; row < height; row++) {
+        for (int col = 0; col < width; col++) {
+          nv21[yIndex++] = yPlane.bytes[row * yPlane.bytesPerRow + col];
+        }
+      }
+
+      // Interleave V and U planes into NV21 format (VUVU...)
+      final uPlane = image.planes[1];
+      final vPlane = image.planes[2];
+      final int uvWidth = width ~/ 2;
+      final int uvHeight = height ~/ 2;
+
+      int uvIndex = ySize;
+      for (int row = 0; row < uvHeight; row++) {
+        for (int col = 0; col < uvWidth; col++) {
+          final int uOffset = row * uPlane.bytesPerRow + col * uPlane.bytesPerPixel!;
+          final int vOffset = row * vPlane.bytesPerRow + col * vPlane.bytesPerPixel!;
+
+          nv21[uvIndex++] = vPlane.bytes[vOffset]; // V first in NV21
+          nv21[uvIndex++] = uPlane.bytes[uOffset]; // U second
+        }
+      }
+
+      return nv21;
+    } catch (e) {
       return null;
     }
   }
 
   void _analyzeFaceForLiveness(Face face) {
-    if (!mounted || _livenessVerified) return;
+    if (!mounted || _livenessVerified || _challenges.isEmpty) return;
 
-    // Get eye probabilities
+    final currentChallenge = _challenges[_currentChallengeIndex];
+
+    // Get face data
     final leftEyeProb = face.leftEyeOpenProbability ?? 0.5;
     final rightEyeProb = face.rightEyeOpenProbability ?? 0.5;
     final headAngleY = face.headEulerAngleY ?? 0.0;
+    final smileProb = face.smilingProbability ?? 0.0;
 
-    // Track face area for natural movement detection
-    final faceArea =
-        face.boundingBox.width.toDouble() * face.boundingBox.height.toDouble();
-    _faceAreaHistory.add(faceArea);
-    if (_faceAreaHistory.length > _historySize) {
-      _faceAreaHistory.removeAt(0);
+    // Set baseline head angle on first frame
+    if (_baselineHeadAngleY == null) {
+      _baselineHeadAngleY = headAngleY;
     }
 
-    // Track head angle for movement detection
-    _headAngleHistory.add(headAngleY);
-    if (_headAngleHistory.length > _historySize) {
-      _headAngleHistory.removeAt(0);
+    bool challengeCompleted = false;
+
+    // Check current challenge
+    switch (currentChallenge) {
+      case LivenessChallenge.blink:
+        // Detect eye blink (closed -> open cycle)
+        bool eyesAreClosed =
+            leftEyeProb < _eyeClosedThreshold && rightEyeProb < _eyeClosedThreshold;
+        bool eyesAreOpen =
+            leftEyeProb > _eyeOpenThreshold && rightEyeProb > _eyeOpenThreshold;
+
+        if (eyesAreClosed && !_eyesWereClosed) {
+          _eyesWereClosed = true;
+        } else if (eyesAreOpen && _eyesWereClosed) {
+          // One blink completed
+          _eyesWereClosed = false;
+          _currentBlinkCount++;
+
+          // Update instruction to show progress
+          if (_currentBlinkCount < _requiredBlinkCount) {
+            setState(() {
+              _livenessInstruction = _getChallengeInstruction(currentChallenge);
+            });
+            // Light haptic for each blink
+            if (mounted) {
+              HapticFeedback.lightImpact();
+            }
+          } else {
+            // All required blinks completed
+            challengeCompleted = true;
+          }
+        }
+        break;
+
+      case LivenessChallenge.turnLeft:
+        // Detect head turn to the left (negative Y angle from user perspective)
+        // Note: Front camera mirrors, so we check positive angle
+        final angleFromBaseline = headAngleY - (_baselineHeadAngleY ?? 0);
+        if (angleFromBaseline > _headTurnThreshold) {
+          challengeCompleted = true;
+        }
+        break;
+
+      case LivenessChallenge.turnRight:
+        // Detect head turn to the right (positive Y angle from user perspective)
+        // Note: Front camera mirrors, so we check negative angle
+        final angleFromBaseline = headAngleY - (_baselineHeadAngleY ?? 0);
+        if (angleFromBaseline < -_headTurnThreshold) {
+          challengeCompleted = true;
+        }
+        break;
+
+      case LivenessChallenge.smile:
+        // Detect smile
+        if (smileProb > _smileThreshold) {
+          challengeCompleted = true;
+        }
+        break;
     }
 
-    // === EYE BLINK DETECTION ===
-    bool eyesAreClosed =
-        leftEyeProb < _eyeClosedThreshold && rightEyeProb < _eyeClosedThreshold;
-    bool eyesAreOpen =
-        leftEyeProb > _eyeOpenThreshold && rightEyeProb > _eyeOpenThreshold;
-
-    if (eyesAreClosed && !_eyesWereClosed) {
-      _eyesWereClosed = true;
-    } else if (eyesAreOpen && _eyesWereClosed) {
-      // Blink completed (eyes closed -> eyes open)
-      _eyesWereClosed = false;
-      _blinkCount++;
+    // Handle challenge completion
+    if (challengeCompleted && !_currentChallengeCompleted) {
+      _currentChallengeCompleted = true;
 
       if (mounted) {
-        HapticFeedback.lightImpact();
-        setState(() {
-          if (_blinkCount >= _requiredBlinks) {
-            _livenessInstruction = 'Kedipan terdeteksi ✓';
-          } else {
-            _livenessInstruction =
-                'Kedipkan mata lagi (${_blinkCount}/$_requiredBlinks)';
+        HapticFeedback.mediumImpact();
+      }
+
+      // Move to next challenge or complete verification
+      if (_currentChallengeIndex < _challenges.length - 1) {
+        // Move to next challenge
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted && !_isDisposed && _isLivenessMode) {
+            // Generate new random blink count for next challenge if it's a blink
+            final nextChallenge = _challenges[_currentChallengeIndex + 1];
+            int newBlinkCount = _requiredBlinkCount;
+            if (nextChallenge == LivenessChallenge.blink) {
+              newBlinkCount = Random().nextInt(3) + 1;
+            }
+
+            setState(() {
+              _currentChallengeIndex++;
+              _currentChallengeCompleted = false;
+              _eyesWereClosed = false;
+              _baselineHeadAngleY = null; // Reset baseline for next challenge
+              _currentBlinkCount = 0; // Reset blink count for next challenge
+              _requiredBlinkCount = newBlinkCount;
+              _livenessInstruction =
+                  _getChallengeInstruction(_challenges[_currentChallengeIndex]);
+            });
           }
         });
-      }
-    }
+      } else {
+        // All challenges completed - verification successful
+        _livenessVerified = true;
+        _stopFaceStreaming();
+        _livenessTimer?.cancel();
 
-    _lastLeftEyeProb = leftEyeProb;
-    _lastRightEyeProb = rightEyeProb;
-
-    // === HEAD MOVEMENT DETECTION ===
-    if (_initialHeadAngleY == null) {
-      _initialHeadAngleY = headAngleY;
-    } else {
-      final angleChange = (headAngleY - _initialHeadAngleY!).abs();
-      if (angleChange > _maxHeadAngleChange) {
-        _maxHeadAngleChange = angleChange;
-      }
-
-      if (_maxHeadAngleChange >= _requiredHeadMovement &&
-          !_headMovementDetected) {
-        _headMovementDetected = true;
         if (mounted) {
-          HapticFeedback.lightImpact();
+          HapticFeedback.heavyImpact();
+          setState(() {
+            _livenessInstruction = 'Verifikasi berhasil! Tekan tombol AMBIL FOTO';
+          });
         }
       }
     }
-
-    // === NATURAL MOVEMENT ANALYSIS ===
-    // Check for variance in face area and head angle (photos are static)
-    if (_faceAreaHistory.length >= _historySize &&
-        _headAngleHistory.length >= _historySize) {
-      final areaVariance = _calculateVariance(_faceAreaHistory);
-      final angleVariance = _calculateVariance(_headAngleHistory);
-
-      // Photos will have very low variance, real faces have natural micro-movements
-      // Thresholds are calibrated for typical smartphone usage
-      final normalizedAreaVariance =
-          areaVariance / (_faceAreaHistory.reduce((a, b) => a + b) / _historySize);
-
-      if (normalizedAreaVariance > 0.0001 || angleVariance > 0.5) {
-        _naturalMovementDetected = true;
-      }
-    }
-
-    // === CHECK IF LIVENESS VERIFIED ===
-    bool blinkVerified = _blinkCount >= _requiredBlinks;
-    bool movementVerified = _headMovementDetected || _naturalMovementDetected;
-
-    if (blinkVerified && movementVerified && !_livenessVerified) {
-      _livenessVerified = true;
-      _stopFaceStreaming();
-      _livenessTimer?.cancel();
-
-      if (mounted) {
-        HapticFeedback.heavyImpact();
-        setState(() {
-          _livenessInstruction = 'Verifikasi berhasil! Mengambil foto...';
-        });
-
-        // Auto capture after successful liveness
-        Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-            _captureAfterLiveness();
-          }
-        });
-      }
-    }
-  }
-
-  double _calculateVariance(List<double> values) {
-    if (values.isEmpty) return 0.0;
-    final mean = values.reduce((a, b) => a + b) / values.length;
-    final squaredDiffs = values.map((v) => (v - mean) * (v - mean));
-    return squaredDiffs.reduce((a, b) => a + b) / values.length;
   }
 
   Future<void> _captureAfterLiveness() async {
@@ -1093,7 +1317,21 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
                 ),
               ),
 
-            // Liveness Detection Overlay
+            // Liveness Detection - Face Guide Oval (same size as initial guide)
+            if (_isLivenessMode && _capturedImage == null)
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: LivenessFaceGuidePainter(
+                    isVerified: _livenessVerified,
+                    blinkProgress: _challenges.isEmpty
+                        ? 0.0
+                        : (_currentChallengeIndex + (_currentChallengeCompleted ? 1 : 0)) /
+                            _challenges.length,
+                  ),
+                ),
+              ),
+
+            // Liveness Detection - Border
             if (_isLivenessMode && _capturedImage == null)
               Positioned.fill(
                 child: Container(
@@ -1103,136 +1341,239 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
                       width: 4,
                     ),
                   ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
+                ),
+              ),
+
+            // Liveness Detection - Challenge Progress at top
+            if (_isLivenessMode && _capturedImage == null)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withAlpha(178),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Timer and Progress at top
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
+                      for (int i = 0; i < _challenges.length; i++) ...[
+                        if (i > 0) const SizedBox(width: 8),
+                        _buildChallengeProgressItem(i),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+
+            // Liveness Detection - Toast Style Instruction with Timer (Bottom)
+            if (_isLivenessMode && _capturedImage == null && !_livenessVerified && _challenges.isNotEmpty)
+              Positioned(
+                bottom: 16,
+                left: 16,
+                right: 16,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (child, animation) {
+                    return SlideTransition(
+                      position: Tween<Offset>(
+                        begin: const Offset(0, 1),
+                        end: Offset.zero,
+                      ).animate(CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOutBack,
+                      )),
+                      child: FadeTransition(opacity: animation, child: child),
+                    );
+                  },
+                  child: Container(
+                    key: ValueKey('toast_${_currentChallengeIndex}_$_currentBlinkCount'),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withAlpha(80),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
                         ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.black.withAlpha(178),
-                              Colors.transparent,
-                            ],
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        // Icon
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withAlpha(30),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(
+                            _getChallengeIcon(_challenges[_currentChallengeIndex]),
+                            color: Colors.white,
+                            size: 24,
                           ),
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Timer
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.timer,
-                                  color: _livenessTimeRemaining <= 3
-                                      ? Colors.red
-                                      : Colors.white,
-                                  size: 18,
+                        const SizedBox(width: 12),
+                        // Text content
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _getSimpleInstruction(_challenges[_currentChallengeIndex]),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${_livenessTimeRemaining}s',
-                                  style: TextStyle(
-                                    color: _livenessTimeRemaining <= 3
-                                        ? Colors.red
-                                        : Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
+                              ),
+                              // Blink progress dots (inline)
+                              if (_challenges[_currentChallengeIndex] == LivenessChallenge.blink && _requiredBlinkCount > 1)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: List.generate(_requiredBlinkCount, (index) {
+                                      final isCompleted = index < _currentBlinkCount;
+                                      return Padding(
+                                        padding: const EdgeInsets.only(right: 5),
+                                        child: Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: isCompleted
+                                                ? AppColors.success
+                                                : Colors.white.withAlpha(50),
+                                            border: Border.all(
+                                              color: isCompleted
+                                                  ? AppColors.success
+                                                  : Colors.white.withAlpha(100),
+                                              width: 1,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    }),
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            // Progress indicators
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                _buildLivenessCheckItem(
-                                  'Kedipan',
-                                  _blinkCount >= _requiredBlinks,
-                                  '$_blinkCount/$_requiredBlinks',
-                                ),
-                                const SizedBox(width: 12),
-                                _buildLivenessCheckItem(
-                                  'Gerakan',
-                                  _headMovementDetected || _naturalMovementDetected,
-                                  _headMovementDetected || _naturalMovementDetected
-                                      ? '✓'
-                                      : '...',
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Spacer(),
-                      // Face guide oval
-                      Flexible(
-                        child: CustomPaint(
-                          size: const Size(180, 240),
-                          painter: LivenessFaceGuidePainter(
-                            isVerified: _livenessVerified,
-                            blinkProgress: _blinkCount / _requiredBlinks,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      // Instruction at bottom
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: [
-                              Colors.black.withAlpha(178),
-                              Colors.transparent,
                             ],
                           ),
                         ),
+                        // Timer on the right
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: _livenessTimeRemaining <= 5
+                                ? Colors.red.withAlpha(50)
+                                : Colors.white.withAlpha(20),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: _livenessTimeRemaining <= 5
+                                  ? Colors.red.withAlpha(150)
+                                  : Colors.white.withAlpha(50),
+                              width: 1,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.timer_outlined,
+                                color: _livenessTimeRemaining <= 5
+                                    ? Colors.red[300]
+                                    : Colors.white,
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${_livenessTimeRemaining}s',
+                                style: TextStyle(
+                                  color: _livenessTimeRemaining <= 5
+                                      ? Colors.red[300]
+                                      : Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+            // Liveness Verified - Toast Style Success (Bottom)
+            if (_isLivenessMode && _capturedImage == null && _livenessVerified)
+              Positioned(
+                bottom: 16,
+                left: 16,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.success,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.success.withAlpha(100),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withAlpha(30),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.check_circle,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      const Expanded(
                         child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              _livenessVerified
-                                  ? Icons.check_circle
-                                  : Icons.remove_red_eye,
-                              color: _livenessVerified
-                                  ? Colors.green
-                                  : Colors.orange,
-                              size: 28,
-                            ),
-                            const SizedBox(height: 6),
                             Text(
-                              _livenessInstruction,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
+                              'Verifikasi Berhasil!',
+                              style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 14,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            if (!_livenessVerified)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 2),
-                                child: Text(
-                                  'Gerakkan kepala sedikit ke kiri/kanan',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: Colors.white.withAlpha(204),
-                                    fontSize: 11,
-                                  ),
-                                ),
+                            SizedBox(height: 2),
+                            Text(
+                              'Silakan ambil foto',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
                               ),
+                            ),
                           ],
                         ),
                       ),
@@ -1311,30 +1652,43 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
     );
   }
 
-  Widget _buildLivenessCheckItem(String label, bool isCompleted, String status) {
+  /// Build a progress indicator for each challenge
+  Widget _buildChallengeProgressItem(int index) {
+    final isCompleted = index < _currentChallengeIndex ||
+        (index == _currentChallengeIndex && _currentChallengeCompleted);
+    final isCurrent = index == _currentChallengeIndex && !_currentChallengeCompleted;
+    final challenge = _challenges[index];
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: isCompleted
-            ? Colors.green.withOpacity(0.8)
-            : Colors.white.withOpacity(0.2),
+            ? Colors.green.withAlpha(204)
+            : isCurrent
+                ? Colors.orange.withAlpha(204)
+                : Colors.white.withAlpha(51),
         borderRadius: BorderRadius.circular(20),
+        border: isCurrent
+            ? Border.all(color: Colors.white, width: 2)
+            : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+            isCompleted
+                ? Icons.check_circle
+                : _getChallengeIcon(challenge),
             color: Colors.white,
             size: 16,
           ),
           const SizedBox(width: 4),
           Text(
-            '$label: $status',
+            '${index + 1}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 12,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],
@@ -1345,7 +1699,51 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
   Widget _buildActionButtons(bool isDarkMode) {
     final isCheckIn = widget.checkType == 'check_in';
 
-    // During liveness mode - show cancel button
+    // Liveness verified - show capture button
+    if (_livenessVerified && _capturedImage == null) {
+      return Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isProcessing ? null : _captureAfterLiveness,
+              icon: const Icon(Icons.camera_alt, size: 28),
+              label: Text(
+                _isProcessing ? 'MEMPROSES...' : 'AMBIL FOTO',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _isProcessing ? null : _stopLivenessDetection,
+              icon: const Icon(Icons.refresh),
+              label: const Text('ULANGI VERIFIKASI'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.orange,
+                side: const BorderSide(color: Colors.orange),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // During liveness mode (not yet verified) - show cancel button
     if (_isLivenessMode && _capturedImage == null) {
       return SizedBox(
         width: double.infinity,
@@ -1393,17 +1791,17 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
+              color: Colors.blue.withAlpha(25),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.blue.withOpacity(0.3)),
+              border: Border.all(color: Colors.blue.withAlpha(76)),
             ),
             child: Row(
               children: [
-                Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                Icon(Icons.security, color: Colors.blue[700], size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Anda akan diminta mengedipkan mata dan menggerakkan kepala untuk memastikan keaslian wajah.',
+                    'Anda akan diminta melakukan $_totalChallenges aksi acak (kedip, senyum, atau putar kepala) untuk memastikan Anda adalah orang yang sebenarnya.',
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.blue[700],
@@ -1604,15 +2002,16 @@ class LivenessFaceGuidePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radiusX = size.width * 0.45;
-    final radiusY = size.height * 0.45;
+    // Use same proportions as FaceOverlayPainter for consistency
+    final center = Offset(size.width / 2, size.height / 2 - 30);
+    final radiusX = size.width * 0.35;
+    final radiusY = size.height * 0.25;
 
     // Draw animated oval guide
     final ovalPaint = Paint()
       ..color = isVerified
-          ? Colors.green.withOpacity(0.8)
-          : Colors.orange.withOpacity(0.6)
+          ? Colors.green.withAlpha(204)
+          : Colors.orange.withAlpha(153)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4;
 
@@ -1623,7 +2022,7 @@ class LivenessFaceGuidePainter extends CustomPainter {
     );
     canvas.drawOval(rect, ovalPaint);
 
-    // Draw progress arc for blink detection
+    // Draw progress arc for challenge completion
     if (!isVerified && blinkProgress > 0) {
       final progressPaint = Paint()
         ..color = Colors.green
@@ -1646,13 +2045,13 @@ class LivenessFaceGuidePainter extends CustomPainter {
       final checkPaint = Paint()
         ..color = Colors.green
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 6
+        ..strokeWidth = 8
         ..strokeCap = StrokeCap.round;
 
       final checkPath = Path()
-        ..moveTo(center.dx - 20, center.dy)
-        ..lineTo(center.dx - 5, center.dy + 15)
-        ..lineTo(center.dx + 25, center.dy - 15);
+        ..moveTo(center.dx - 30, center.dy)
+        ..lineTo(center.dx - 10, center.dy + 25)
+        ..lineTo(center.dx + 35, center.dy - 25);
 
       canvas.drawPath(checkPath, checkPaint);
     }
@@ -1662,5 +2061,278 @@ class LivenessFaceGuidePainter extends CustomPainter {
   bool shouldRepaint(covariant LivenessFaceGuidePainter oldDelegate) {
     return oldDelegate.isVerified != isVerified ||
         oldDelegate.blinkProgress != blinkProgress;
+  }
+}
+
+/// Animated visual guide for liveness challenges
+class LivenessChallengeAnimation extends StatefulWidget {
+  final LivenessChallenge challenge;
+  final int currentBlinkCount;
+  final int requiredBlinkCount;
+
+  const LivenessChallengeAnimation({
+    super.key,
+    required this.challenge,
+    this.currentBlinkCount = 0,
+    this.requiredBlinkCount = 1,
+  });
+
+  @override
+  State<LivenessChallengeAnimation> createState() => _LivenessChallengeAnimationState();
+}
+
+class _LivenessChallengeAnimationState extends State<LivenessChallengeAnimation>
+    with TickerProviderStateMixin {
+  late AnimationController _pulseController;
+  late AnimationController _moveController;
+  late Animation<double> _pulseAnimation;
+  late Animation<double> _moveAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _moveController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _pulseAnimation = Tween<double>(begin: 0.9, end: 1.1).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+
+    _moveAnimation = Tween<double>(begin: -15, end: 15).animate(
+      CurvedAnimation(parent: _moveController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    _moveController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([_pulseController, _moveController]),
+      builder: (context, child) {
+        return _buildChallengeWidget();
+      },
+    );
+  }
+
+  Widget _buildChallengeWidget() {
+    switch (widget.challenge) {
+      case LivenessChallenge.blink:
+        return _buildBlinkAnimation();
+      case LivenessChallenge.turnLeft:
+        return _buildTurnLeftAnimation();
+      case LivenessChallenge.turnRight:
+        return _buildTurnRightAnimation();
+      case LivenessChallenge.smile:
+        return _buildSmileAnimation();
+    }
+  }
+
+  Widget _buildBlinkAnimation() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Animated eye icon
+        Transform.scale(
+          scale: _pulseAnimation.value,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.accent.withAlpha(40),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.accent,
+                width: 3,
+              ),
+            ),
+            child: Icon(
+              _pulseController.value < 0.5
+                  ? Icons.visibility_off
+                  : Icons.visibility,
+              color: AppColors.accent,
+              size: 60,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Progress indicator for multiple blinks
+        if (widget.requiredBlinkCount > 1)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: List.generate(widget.requiredBlinkCount, (index) {
+              final isCompleted = index < widget.currentBlinkCount;
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: isCompleted ? AppColors.success : Colors.white.withAlpha(100),
+                    border: Border.all(
+                      color: isCompleted ? AppColors.success : AppColors.accent,
+                      width: 2,
+                    ),
+                  ),
+                  child: isCompleted
+                      ? const Icon(Icons.check, size: 8, color: Colors.white)
+                      : null,
+                ),
+              );
+            }),
+          ),
+        const SizedBox(height: 12),
+        _buildInstructionText('Kedipkan Mata', widget.requiredBlinkCount > 1
+            ? '${widget.currentBlinkCount}/${widget.requiredBlinkCount}'
+            : null),
+      ],
+    );
+  }
+
+  Widget _buildTurnLeftAnimation() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Animated arrow pointing left
+        Transform.translate(
+          offset: Offset(_moveAnimation.value, 0),
+          child: Transform.scale(
+            scale: _pulseAnimation.value,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withAlpha(40),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.accent,
+                  width: 3,
+                ),
+              ),
+              child: const Icon(
+                Icons.arrow_back_rounded,
+                color: AppColors.accent,
+                size: 60,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildInstructionText('Putar Kepala ke KIRI', null),
+      ],
+    );
+  }
+
+  Widget _buildTurnRightAnimation() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Animated arrow pointing right
+        Transform.translate(
+          offset: Offset(-_moveAnimation.value, 0),
+          child: Transform.scale(
+            scale: _pulseAnimation.value,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withAlpha(40),
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.accent,
+                  width: 3,
+                ),
+              ),
+              child: const Icon(
+                Icons.arrow_forward_rounded,
+                color: AppColors.accent,
+                size: 60,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildInstructionText('Putar Kepala ke KANAN', null),
+      ],
+    );
+  }
+
+  Widget _buildSmileAnimation() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Animated smile icon
+        Transform.scale(
+          scale: _pulseAnimation.value,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.accent.withAlpha(40),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.accent,
+                width: 3,
+              ),
+            ),
+            child: const Icon(
+              Icons.sentiment_very_satisfied,
+              color: AppColors.accent,
+              size: 60,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildInstructionText('Tersenyum', null),
+      ],
+    );
+  }
+
+  Widget _buildInstructionText(String text, String? subText) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.black.withAlpha(180),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(
+          color: AppColors.accent.withAlpha(100),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            text,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
+          ),
+          if (subText != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              subText,
+              style: TextStyle(
+                color: AppColors.accent,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
