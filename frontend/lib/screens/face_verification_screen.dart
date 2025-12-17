@@ -36,7 +36,8 @@ class FaceVerificationScreen extends StatefulWidget {
   State<FaceVerificationScreen> createState() => _FaceVerificationScreenState();
 }
 
-class _FaceVerificationScreenState extends State<FaceVerificationScreen> {
+class _FaceVerificationScreenState extends State<FaceVerificationScreen>
+    with WidgetsBindingObserver {
   final MobileAttendanceService _attendanceService = MobileAttendanceService();
 
   CameraController? _cameraController;
@@ -54,12 +55,58 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen> {
   XFile? _capturedImage;
   String? _capturedImageBase64;
 
+  // ===== LIVENESS DETECTION STATE =====
+  bool _isLivenessMode = false;
+  bool _livenessVerified = false;
+  bool _isStreamingFaces = false;
+
+  // Eye blink detection
+  int _blinkCount = 0;
+  static const int _requiredBlinks = 2;
+  bool _eyesWereClosed = false;
+  double _lastLeftEyeProb = 1.0;
+  double _lastRightEyeProb = 1.0;
+  static const double _eyeClosedThreshold = 0.3;
+  static const double _eyeOpenThreshold = 0.7;
+
+  // Head movement detection
+  bool _headMovementDetected = false;
+  double? _initialHeadAngleY;
+  double _maxHeadAngleChange = 0.0;
+  static const double _requiredHeadMovement = 12.0;
+
+  // Liveness progress tracking
+  String _livenessInstruction = '';
+  Timer? _livenessTimer;
+  int _livenessTimeRemaining = 10;
+  static const int _livenessTimeoutSeconds = 10;
+
+  // Multiple frame analysis for anti-spoofing
+  List<double> _faceAreaHistory = [];
+  List<double> _headAngleHistory = [];
+  static const int _historySize = 15;
+  bool _naturalMovementDetected = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initializeCamera();
     _loadEmployeeAvatar();
     _initializeFaceDetector();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      return;
+    }
+
+    if (state == AppLifecycleState.inactive) {
+      _stopLivenessDetection();
+    } else if (state == AppLifecycleState.resumed) {
+      // Camera will be re-initialized when returning
+    }
   }
 
   Future<void> _initializeCamera() async {
@@ -267,6 +314,7 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen> {
         longitude: widget.longitude,
         faceImageBase64: _capturedImageBase64!,
         faceConfidence: _faceConfidence,
+        livenessVerified: _livenessVerified, // Anti-spoofing liveness check
         deviceInfo: deviceInfo,
         securityData: widget.securityData, // Pass anti-fake GPS data
       );
@@ -390,14 +438,402 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen> {
       _faceDetected = false;
       _faceConfidence = 0.0;
       _errorMessage = null;
+      // Reset liveness state
+      _livenessVerified = false;
+      _blinkCount = 0;
+      _eyesWereClosed = false;
+      _headMovementDetected = false;
+      _naturalMovementDetected = false;
+      _initialHeadAngleY = null;
+      _maxHeadAngleChange = 0.0;
+      _faceAreaHistory.clear();
+      _headAngleHistory.clear();
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _stopLivenessDetection();
+    _livenessTimer?.cancel();
     _cameraController?.dispose();
     _faceDetector?.close();
     super.dispose();
+  }
+
+  // ===== LIVENESS DETECTION METHODS =====
+
+  void _startLivenessDetection() {
+    if (_isLivenessMode) return;
+
+    setState(() {
+      _isLivenessMode = true;
+      _livenessVerified = false;
+      _blinkCount = 0;
+      _eyesWereClosed = false;
+      _headMovementDetected = false;
+      _initialHeadAngleY = null;
+      _maxHeadAngleChange = 0.0;
+      _faceAreaHistory.clear();
+      _headAngleHistory.clear();
+      _naturalMovementDetected = false;
+      _livenessTimeRemaining = _livenessTimeoutSeconds;
+      _livenessInstruction = 'Kedipkan mata Anda 2x';
+      _errorMessage = null;
+    });
+
+    // Start timeout timer
+    _livenessTimer?.cancel();
+    _livenessTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      setState(() {
+        _livenessTimeRemaining--;
+      });
+
+      if (_livenessTimeRemaining <= 0) {
+        timer.cancel();
+        _onLivenessTimeout();
+      }
+    });
+
+    // Start streaming face detection
+    _startFaceStreaming();
+  }
+
+  void _stopLivenessDetection() {
+    _livenessTimer?.cancel();
+    _stopFaceStreaming();
+    if (mounted) {
+      setState(() {
+        _isLivenessMode = false;
+        _isStreamingFaces = false;
+      });
+    }
+  }
+
+  void _onLivenessTimeout() {
+    _stopLivenessDetection();
+    if (mounted) {
+      setState(() {
+        _errorMessage =
+            'Verifikasi gagal: Waktu habis. Pastikan Anda mengedipkan mata dan menggerakkan kepala sedikit.';
+        _isLivenessMode = false;
+      });
+    }
+  }
+
+  Future<void> _startFaceStreaming() async {
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        _isStreamingFaces) {
+      return;
+    }
+
+    setState(() {
+      _isStreamingFaces = true;
+    });
+
+    try {
+      await _cameraController!.startImageStream((CameraImage image) {
+        if (!_isLivenessMode || !_isStreamingFaces || _livenessVerified) {
+          return;
+        }
+        _processFrameForLiveness(image);
+      });
+    } catch (e) {
+      print('Error starting image stream: $e');
+      setState(() {
+        _isStreamingFaces = false;
+      });
+    }
+  }
+
+  Future<void> _stopFaceStreaming() async {
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        !_isStreamingFaces) {
+      return;
+    }
+
+    try {
+      await _cameraController!.stopImageStream();
+    } catch (e) {
+      print('Error stopping image stream: $e');
+    }
+
+    if (mounted) {
+      setState(() {
+        _isStreamingFaces = false;
+      });
+    }
+  }
+
+  bool _isProcessingFrame = false;
+
+  Future<void> _processFrameForLiveness(CameraImage image) async {
+    if (_isProcessingFrame || !mounted) return;
+    _isProcessingFrame = true;
+
+    try {
+      final inputImage = _convertCameraImageToInputImage(image);
+      if (inputImage == null) {
+        _isProcessingFrame = false;
+        return;
+      }
+
+      final faces = await _faceDetector!.processImage(inputImage);
+
+      if (!mounted || !_isLivenessMode) {
+        _isProcessingFrame = false;
+        return;
+      }
+
+      if (faces.isEmpty) {
+        _isProcessingFrame = false;
+        return;
+      }
+
+      if (faces.length > 1) {
+        setState(() {
+          _errorMessage = 'Terdeteksi lebih dari satu wajah';
+        });
+        _isProcessingFrame = false;
+        return;
+      }
+
+      final face = faces.first;
+      _analyzeFaceForLiveness(face);
+    } catch (e) {
+      print('Error processing frame: $e');
+    }
+
+    _isProcessingFrame = false;
+  }
+
+  InputImage? _convertCameraImageToInputImage(CameraImage image) {
+    try {
+      final camera = _cameras!.firstWhere(
+        (cam) => cam.lensDirection == CameraLensDirection.front,
+        orElse: () => _cameras!.first,
+      );
+
+      final imageRotation = InputImageRotationValue.fromRawValue(
+        camera.sensorOrientation,
+      );
+
+      if (imageRotation == null) return null;
+
+      final format = InputImageFormatValue.fromRawValue(image.format.raw);
+      if (format == null) return null;
+
+      // For YUV420 format (most common on Android)
+      if (image.planes.isEmpty) return null;
+
+      final plane = image.planes.first;
+      final bytes = plane.bytes;
+
+      return InputImage.fromBytes(
+        bytes: bytes,
+        metadata: InputImageMetadata(
+          size: Size(image.width.toDouble(), image.height.toDouble()),
+          rotation: imageRotation,
+          format: format,
+          bytesPerRow: plane.bytesPerRow,
+        ),
+      );
+    } catch (e) {
+      print('Error converting image: $e');
+      return null;
+    }
+  }
+
+  void _analyzeFaceForLiveness(Face face) {
+    if (!mounted || _livenessVerified) return;
+
+    // Get eye probabilities
+    final leftEyeProb = face.leftEyeOpenProbability ?? 0.5;
+    final rightEyeProb = face.rightEyeOpenProbability ?? 0.5;
+    final headAngleY = face.headEulerAngleY ?? 0.0;
+
+    // Track face area for natural movement detection
+    final faceArea =
+        face.boundingBox.width.toDouble() * face.boundingBox.height.toDouble();
+    _faceAreaHistory.add(faceArea);
+    if (_faceAreaHistory.length > _historySize) {
+      _faceAreaHistory.removeAt(0);
+    }
+
+    // Track head angle for movement detection
+    _headAngleHistory.add(headAngleY);
+    if (_headAngleHistory.length > _historySize) {
+      _headAngleHistory.removeAt(0);
+    }
+
+    // === EYE BLINK DETECTION ===
+    bool eyesAreClosed =
+        leftEyeProb < _eyeClosedThreshold && rightEyeProb < _eyeClosedThreshold;
+    bool eyesAreOpen =
+        leftEyeProb > _eyeOpenThreshold && rightEyeProb > _eyeOpenThreshold;
+
+    if (eyesAreClosed && !_eyesWereClosed) {
+      _eyesWereClosed = true;
+    } else if (eyesAreOpen && _eyesWereClosed) {
+      // Blink completed (eyes closed -> eyes open)
+      _eyesWereClosed = false;
+      _blinkCount++;
+
+      if (mounted) {
+        HapticFeedback.lightImpact();
+        setState(() {
+          if (_blinkCount >= _requiredBlinks) {
+            _livenessInstruction = 'Kedipan terdeteksi ✓';
+          } else {
+            _livenessInstruction =
+                'Kedipkan mata lagi (${_blinkCount}/$_requiredBlinks)';
+          }
+        });
+      }
+    }
+
+    _lastLeftEyeProb = leftEyeProb;
+    _lastRightEyeProb = rightEyeProb;
+
+    // === HEAD MOVEMENT DETECTION ===
+    if (_initialHeadAngleY == null) {
+      _initialHeadAngleY = headAngleY;
+    } else {
+      final angleChange = (headAngleY - _initialHeadAngleY!).abs();
+      if (angleChange > _maxHeadAngleChange) {
+        _maxHeadAngleChange = angleChange;
+      }
+
+      if (_maxHeadAngleChange >= _requiredHeadMovement &&
+          !_headMovementDetected) {
+        _headMovementDetected = true;
+        if (mounted) {
+          HapticFeedback.lightImpact();
+        }
+      }
+    }
+
+    // === NATURAL MOVEMENT ANALYSIS ===
+    // Check for variance in face area and head angle (photos are static)
+    if (_faceAreaHistory.length >= _historySize &&
+        _headAngleHistory.length >= _historySize) {
+      final areaVariance = _calculateVariance(_faceAreaHistory);
+      final angleVariance = _calculateVariance(_headAngleHistory);
+
+      // Photos will have very low variance, real faces have natural micro-movements
+      // Thresholds are calibrated for typical smartphone usage
+      final normalizedAreaVariance =
+          areaVariance / (_faceAreaHistory.reduce((a, b) => a + b) / _historySize);
+
+      if (normalizedAreaVariance > 0.0001 || angleVariance > 0.5) {
+        _naturalMovementDetected = true;
+      }
+    }
+
+    // === CHECK IF LIVENESS VERIFIED ===
+    bool blinkVerified = _blinkCount >= _requiredBlinks;
+    bool movementVerified = _headMovementDetected || _naturalMovementDetected;
+
+    if (blinkVerified && movementVerified && !_livenessVerified) {
+      _livenessVerified = true;
+      _stopFaceStreaming();
+      _livenessTimer?.cancel();
+
+      if (mounted) {
+        HapticFeedback.heavyImpact();
+        setState(() {
+          _livenessInstruction = 'Verifikasi berhasil! Mengambil foto...';
+        });
+
+        // Auto capture after successful liveness
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) {
+            _captureAfterLiveness();
+          }
+        });
+      }
+    }
+  }
+
+  double _calculateVariance(List<double> values) {
+    if (values.isEmpty) return 0.0;
+    final mean = values.reduce((a, b) => a + b) / values.length;
+    final squaredDiffs = values.map((v) => (v - mean) * (v - mean));
+    return squaredDiffs.reduce((a, b) => a + b) / values.length;
+  }
+
+  Future<void> _captureAfterLiveness() async {
+    if (_cameraController == null || !_cameraController!.value.isInitialized) {
+      return;
+    }
+
+    setState(() {
+      _isProcessing = true;
+      _isLivenessMode = false;
+    });
+
+    try {
+      // Ensure stream is stopped before taking picture
+      if (_isStreamingFaces) {
+        await _stopFaceStreaming();
+        await Future.delayed(const Duration(milliseconds: 200));
+      }
+
+      final XFile imageFile = await _cameraController!.takePicture();
+      final inputImage = InputImage.fromFilePath(imageFile.path);
+      final List<Face> faces = await _faceDetector!.processImage(inputImage);
+
+      if (faces.isEmpty) {
+        setState(() {
+          _isProcessing = false;
+          _faceDetected = false;
+          _livenessVerified = false;
+          _errorMessage =
+              'Wajah tidak terdeteksi saat pengambilan foto. Silakan coba lagi.';
+        });
+        return;
+      }
+
+      if (faces.length > 1) {
+        setState(() {
+          _isProcessing = false;
+          _livenessVerified = false;
+          _errorMessage =
+              'Terdeteksi lebih dari satu wajah. Pastikan hanya ada satu wajah.';
+        });
+        return;
+      }
+
+      final face = faces.first;
+      double confidence = _calculateFaceConfidence(face);
+
+      // Boost confidence for successful liveness
+      confidence = (confidence + 5).clamp(0.0, 100.0);
+
+      final bytes = await imageFile.readAsBytes();
+      final base64Image = base64Encode(bytes);
+
+      setState(() {
+        _capturedImage = imageFile;
+        _capturedImageBase64 = base64Image;
+        _faceDetected = true;
+        _faceConfidence = confidence;
+        _isProcessing = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isProcessing = false;
+        _livenessVerified = false;
+        _errorMessage = 'Gagal mengambil foto: ${e.toString()}';
+      });
+    }
   }
 
   @override
@@ -573,14 +1009,157 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen> {
             ),
 
             // Face Overlay Guide
-            if (_capturedImage == null)
+            if (_capturedImage == null && !_isLivenessMode)
               Positioned.fill(
                 child: CustomPaint(
                   painter: FaceOverlayPainter(),
                 ),
               ),
 
-            // Face Detection Status
+            // Liveness Detection Overlay
+            if (_isLivenessMode && _capturedImage == null)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: _livenessVerified ? Colors.green : Colors.orange,
+                      width: 4,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      // Timer and Progress at top
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.7),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            // Timer
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.timer,
+                                  color: _livenessTimeRemaining <= 3
+                                      ? Colors.red
+                                      : Colors.white,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  '${_livenessTimeRemaining}s',
+                                  style: TextStyle(
+                                    color: _livenessTimeRemaining <= 3
+                                        ? Colors.red
+                                        : Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            // Progress indicators
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                _buildLivenessCheckItem(
+                                  'Kedipan',
+                                  _blinkCount >= _requiredBlinks,
+                                  '$_blinkCount/$_requiredBlinks',
+                                ),
+                                const SizedBox(width: 16),
+                                _buildLivenessCheckItem(
+                                  'Gerakan',
+                                  _headMovementDetected || _naturalMovementDetected,
+                                  _headMovementDetected || _naturalMovementDetected
+                                      ? '✓'
+                                      : '...',
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                      // Face guide oval
+                      CustomPaint(
+                        size: const Size(200, 260),
+                        painter: LivenessFaceGuidePainter(
+                          isVerified: _livenessVerified,
+                          blinkProgress: _blinkCount / _requiredBlinks,
+                        ),
+                      ),
+                      const Spacer(),
+                      // Instruction at bottom
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.bottomCenter,
+                            end: Alignment.topCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.7),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              _livenessVerified
+                                  ? Icons.check_circle
+                                  : Icons.remove_red_eye,
+                              color: _livenessVerified
+                                  ? Colors.green
+                                  : Colors.orange,
+                              size: 32,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _livenessInstruction,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (!_livenessVerified)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  'Gerakkan kepala sedikit ke kiri/kanan',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.8),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Face Detection Status (after capture)
             if (_capturedImage != null)
               Positioned(
                 bottom: 16,
@@ -589,26 +1168,36 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: _faceDetected
+                    color: _faceDetected && _livenessVerified
                         ? Colors.green.withOpacity(0.9)
-                        : Colors.red.withOpacity(0.9),
+                        : _faceDetected
+                            ? Colors.orange.withOpacity(0.9)
+                            : Colors.red.withOpacity(0.9),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        _faceDetected ? Icons.face : Icons.face_retouching_off,
+                        _faceDetected && _livenessVerified
+                            ? Icons.verified_user
+                            : _faceDetected
+                                ? Icons.face
+                                : Icons.face_retouching_off,
                         color: Colors.white,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        _faceDetected
-                            ? 'Wajah Terdeteksi (${_faceConfidence.toStringAsFixed(0)}%)'
-                            : 'Wajah Tidak Terdeteksi',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                      Flexible(
+                        child: Text(
+                          _faceDetected && _livenessVerified
+                              ? 'Wajah Terverifikasi (${_faceConfidence.toStringAsFixed(0)}%)'
+                              : _faceDetected
+                                  ? 'Wajah Terdeteksi (${_faceConfidence.toStringAsFixed(0)}%)'
+                                  : 'Wajah Tidak Terdeteksi',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ],
@@ -640,24 +1229,52 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen> {
     );
   }
 
+  Widget _buildLivenessCheckItem(String label, bool isCompleted, String status) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: isCompleted
+            ? Colors.green.withOpacity(0.8)
+            : Colors.white.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+            color: Colors.white,
+            size: 16,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '$label: $status',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildActionButtons(bool isDarkMode) {
     final isCheckIn = widget.checkType == 'check_in';
 
-    if (_capturedImage == null) {
-      // Capture Button
+    // During liveness mode - show cancel button
+    if (_isLivenessMode && _capturedImage == null) {
       return SizedBox(
         width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: _isProcessing ? null : _captureAndVerify,
-          icon: const Icon(Icons.camera_alt, size: 28),
-          label: const Text(
-            'AMBIL FOTO',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
+        child: OutlinedButton.icon(
+          onPressed: _stopLivenessDetection,
+          icon: const Icon(Icons.close),
+          label: const Text('BATALKAN'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.red,
+            side: const BorderSide(color: Colors.red),
+            padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -666,14 +1283,92 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen> {
       );
     }
 
-    // Retake and Submit Buttons
+    if (_capturedImage == null) {
+      // Start Liveness Detection Button
+      return Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _isProcessing ? null : _startLivenessDetection,
+              icon: const Icon(Icons.verified_user, size: 28),
+              label: const Text(
+                'MULAI VERIFIKASI',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Info text about liveness
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.blue.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Anda akan diminta mengedipkan mata dan menggerakkan kepala untuk memastikan keaslian wajah.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.blue[700],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Retake and Submit Buttons (after capture)
     return Column(
       children: [
+        // Liveness status indicator
+        if (_livenessVerified)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.withOpacity(0.3)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.verified, color: Colors.green, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Liveness Terverifikasi',
+                  style: TextStyle(
+                    color: Colors.green[700],
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
         // Submit Button
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: _isSubmitting || _faceConfidence < 80
+            onPressed: _isSubmitting || _faceConfidence < 80 || !_livenessVerified
                 ? null
                 : _submitAttendance,
             icon: _isSubmitting
@@ -813,4 +1508,77 @@ class FaceOverlayPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// Custom Painter for Liveness Face Guide
+class LivenessFaceGuidePainter extends CustomPainter {
+  final bool isVerified;
+  final double blinkProgress;
+
+  LivenessFaceGuidePainter({
+    required this.isVerified,
+    required this.blinkProgress,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radiusX = size.width * 0.45;
+    final radiusY = size.height * 0.45;
+
+    // Draw animated oval guide
+    final ovalPaint = Paint()
+      ..color = isVerified
+          ? Colors.green.withOpacity(0.8)
+          : Colors.orange.withOpacity(0.6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4;
+
+    final rect = Rect.fromCenter(
+      center: center,
+      width: radiusX * 2,
+      height: radiusY * 2,
+    );
+    canvas.drawOval(rect, ovalPaint);
+
+    // Draw progress arc for blink detection
+    if (!isVerified && blinkProgress > 0) {
+      final progressPaint = Paint()
+        ..color = Colors.green
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6
+        ..strokeCap = StrokeCap.round;
+
+      final sweepAngle = 2 * 3.14159 * blinkProgress.clamp(0.0, 1.0);
+      canvas.drawArc(
+        rect.inflate(8),
+        -3.14159 / 2, // Start from top
+        sweepAngle,
+        false,
+        progressPaint,
+      );
+    }
+
+    // Draw checkmark if verified
+    if (isVerified) {
+      final checkPaint = Paint()
+        ..color = Colors.green
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6
+        ..strokeCap = StrokeCap.round;
+
+      final checkPath = Path()
+        ..moveTo(center.dx - 20, center.dy)
+        ..lineTo(center.dx - 5, center.dy + 15)
+        ..lineTo(center.dx + 25, center.dy - 15);
+
+      canvas.drawPath(checkPath, checkPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant LivenessFaceGuidePainter oldDelegate) {
+    return oldDelegate.isVerified != isVerified ||
+        oldDelegate.blinkProgress != blinkProgress;
+  }
 }

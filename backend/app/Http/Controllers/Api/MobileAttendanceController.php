@@ -197,6 +197,8 @@ class MobileAttendanceController extends Controller
             'face_image' => 'required|string', // Base64 encoded image
             'face_confidence' => 'required|numeric|between:0,100',
             'device_info' => 'nullable|string|max:255',
+            // Liveness detection field
+            'liveness_verified' => 'required|boolean',
             // Anti-fake GPS fields
             'is_mock_location' => 'nullable|boolean',
             'is_rooted' => 'nullable|boolean',
@@ -273,6 +275,15 @@ class MobileAttendanceController extends Controller
                 ], 400);
             }
 
+            // Validate liveness detection - REQUIRED for anti-spoofing
+            $livenessVerified = $request->boolean('liveness_verified', false);
+            if (!$livenessVerified) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Verifikasi liveness gagal. Pastikan Anda mengedipkan mata dan menggerakkan kepala saat verifikasi. Absensi ditolak.',
+                ], 400);
+            }
+
             // Save face image
             $faceImagePath = $this->saveFaceImage($request->face_image, $user->id, $checkType);
 
@@ -301,6 +312,7 @@ class MobileAttendanceController extends Controller
                 'face_verified' => true,
                 'face_confidence' => $faceConfidence,
                 'face_image_path' => $faceImagePath,
+                'liveness_verified' => $livenessVerified, // Anti-spoofing liveness check
                 'device_info' => $request->device_info,
                 'attendance_date' => now()->toDateString(),
                 // Anti-fake GPS data

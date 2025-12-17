@@ -21,6 +21,7 @@ class AttendanceRecord extends Model
         'location_verified',
         'face_verified',
         'face_confidence',
+        'liveness_verified', // Anti-spoofing liveness check
         'face_image_path',
         'device_info',
         'attendance_date',
@@ -44,6 +45,7 @@ class AttendanceRecord extends Model
         'location_verified' => 'boolean',
         'face_verified' => 'boolean',
         'face_confidence' => 'decimal:2',
+        'liveness_verified' => 'boolean', // Anti-spoofing liveness check
         'attendance_date' => 'date',
         // Anti-fake GPS casts
         'is_mock_location' => 'boolean',

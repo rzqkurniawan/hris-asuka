@@ -92,6 +92,7 @@ class MobileAttendanceService {
     required double longitude,
     required String faceImageBase64,
     required double faceConfidence,
+    required bool livenessVerified, // Anti-spoofing liveness check
     String? deviceInfo,
     ExtendedLocationData? securityData, // Anti-fake GPS data
   }) async {
@@ -103,6 +104,7 @@ class MobileAttendanceService {
         'longitude': longitude,
         'face_image': faceImageBase64,
         'face_confidence': faceConfidence,
+        'liveness_verified': livenessVerified, // Required for anti-spoofing
         'device_info': deviceInfo,
       };
 
