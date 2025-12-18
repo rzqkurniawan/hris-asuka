@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../widgets/profile_cover_header.dart';
 import '../widgets/profile_menu_list.dart';
+import '../widgets/change_password_bottom_sheet.dart';
 import '../constants/app_colors.dart';
 import '../utils/page_transitions.dart';
 import '../providers/auth_provider.dart';
@@ -178,6 +179,16 @@ class ProfilePage extends StatelessWidget {
                               page: const EducationalHistoryScreen(),
                             ),
                           );
+                        },
+                      ),
+                      ProfileMenuItem(
+                        icon: Icons.lock_outline_rounded,
+                        title: 'Ubah Password',
+                        subtitle: 'Change your password',
+                        color: AppColors.error,
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          showChangePasswordBottomSheet(context);
                         },
                       ),
                     ],

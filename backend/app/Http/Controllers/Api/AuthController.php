@@ -463,4 +463,113 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Change user password
+     * Request: current_password, new_password, password_confirmation
+     */
+    public function changePassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'current_password' => 'required|string',
+            'new_password' => [
+                'required',
+                'string',
+                'min:12',
+                'max:128',
+                'confirmed',
+                'different:current_password',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+=\[\]{};:\'",.<>\/\\|`~-]).+$/',
+            ],
+        ], [
+            'new_password.regex' => 'Password harus mengandung huruf besar, huruf kecil, angka, dan karakter khusus (!@#$%^&*)',
+            'new_password.min' => 'Password minimal 12 karakter',
+            'new_password.max' => 'Password maksimal 128 karakter',
+            'new_password.different' => 'Password baru harus berbeda dengan password lama',
+            'new_password.confirmed' => 'Konfirmasi password tidak cocok',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $user = $request->user();
+
+            // Verify current password
+            if (!Hash::check($request->current_password, $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Password lama tidak sesuai',
+                    'errors' => [
+                        'current_password' => ['Password lama tidak sesuai']
+                    ],
+                ], 422);
+            }
+
+            // Check for common weak passwords
+            $commonPasswords = [
+                '123456789012',
+                '1234567890123',
+                '12345678901234',
+                'password1234',
+                'password12345',
+                'password123456',
+                'qwerty123456',
+                'qwertyuiop12',
+                'admin1234567',
+                'administrator1',
+                'letmein12345',
+                'welcome12345',
+                'iloveyou1234',
+                'sunshine1234',
+                'princess1234',
+                'football1234',
+                'abc123456789',
+                'monkey123456',
+                'shadow123456',
+                'master123456',
+            ];
+
+            $lowercasePassword = strtolower($request->new_password);
+            foreach ($commonPasswords as $commonPass) {
+                if (strtolower($commonPass) === $lowercasePassword) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Password terlalu umum. Gunakan kombinasi yang lebih unik',
+                        'errors' => [
+                            'new_password' => ['Password terlalu umum. Gunakan kombinasi yang lebih unik']
+                        ],
+                    ], 422);
+                }
+            }
+
+            // Update password
+            $user->password = Hash::make($request->new_password);
+            $user->save();
+
+            // Log password change
+            AuditLog::create([
+                'user_id' => $user->id,
+                'action' => 'change_password',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'response_status' => 200,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password berhasil diubah',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengubah password',
+            ], 500);
+        }
+    }
 }

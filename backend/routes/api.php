@@ -56,6 +56,11 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/refresh', [AuthController::class, 'refresh']);
         Route::post('/logout', [AuthController::class, 'logout']);
+
+        // Rate limit: 3 requests per minute for password change (security)
+        Route::middleware('throttle:3,1')->group(function () {
+            Route::post('/change-password', [AuthController::class, 'changePassword']);
+        });
     });
 
     // Employee routes

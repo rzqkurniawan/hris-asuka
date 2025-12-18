@@ -270,6 +270,33 @@ class AuthService {
     return false;
   }
 
+  // Change password
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String passwordConfirmation,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConfig.changePassword,
+        data: {
+          'current_password': currentPassword,
+          'new_password': newPassword,
+          'new_password_confirmation': passwordConfirmation,
+        },
+      );
+
+      if (!response.data['success']) {
+        throw ApiException(
+          message: response.data['message'] ?? 'Gagal mengubah password',
+        );
+      }
+    } catch (e) {
+      DebugLogger.error('Change password error', error: e, tag: 'AuthService');
+      rethrow;
+    }
+  }
+
   // Check health
   Future<bool> checkHealth() async {
     try {
