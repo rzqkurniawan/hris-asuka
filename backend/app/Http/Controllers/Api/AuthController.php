@@ -8,9 +8,11 @@ use App\Models\Employee;
 use App\Models\MobileToken;
 use App\Models\UserPreference;
 use App\Models\AuditLog;
+use App\Services\FaceComparisonService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
 class AuthController extends Controller
@@ -262,6 +264,60 @@ class AuthController extends Controller
                 ], 400);
             }
 
+            // Perform actual face comparison with employee's stored photo
+            $faceComparisonService = new FaceComparisonService();
+
+            // Get the path to the employee's stored photo (from photo-cache synced from GCP)
+            $employeePhotoPath = storage_path("app/photo-cache/{$employee->identity_file_name}");
+
+            // Check if photo exists
+            if (!file_exists($employeePhotoPath)) {
+                Log::warning('Employee photo not found for face comparison', [
+                    'employee_id' => $employee->employee_id,
+                    'identity_file_name' => $employee->identity_file_name,
+                    'tried_path' => $employeePhotoPath,
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Foto karyawan tidak ditemukan untuk verifikasi wajah. Hubungi HRD.',
+                ], 422);
+            }
+
+            // Compare faces
+            $faceComparisonResult = $faceComparisonService->compareFaces(
+                $employeePhotoPath,
+                $request->face_image
+            );
+
+            Log::info('Face comparison result for registration', [
+                'employee_id' => $employee->employee_id,
+                'result' => $faceComparisonResult,
+            ]);
+
+            // Check if face comparison was successful
+            if (!$faceComparisonResult['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $faceComparisonResult['message'],
+                    'data' => [
+                        'face_comparison_error' => true,
+                    ],
+                ], 400);
+            }
+
+            // Check if faces match (minimum 75% similarity required)
+            if (!$faceComparisonResult['match']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Wajah tidak cocok dengan foto karyawan terdaftar. Pastikan Anda adalah karyawan yang benar.',
+                    'data' => [
+                        'face_confidence' => $faceComparisonResult['confidence'],
+                        'min_required' => $faceComparisonService->getMinConfidence(),
+                    ],
+                ], 400);
+            }
+
             // Save face image for audit
             $faceImagePath = $this->saveFaceImage(
                 $request->face_image,
@@ -294,7 +350,8 @@ class AuthController extends Controller
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
                 'request_data' => [
-                    'face_confidence' => $request->face_confidence,
+                    'face_confidence' => $faceComparisonResult['confidence'], // Server-side comparison
+                    'face_distance' => $faceComparisonResult['distance'] ?? null,
                     'liveness_verified' => $request->boolean('liveness_verified'),
                     'face_image_path' => $faceImagePath,
                 ],
@@ -860,15 +917,63 @@ class AuthController extends Controller
                 ], 400);
             }
 
-            // Validate face confidence (minimum 80%)
-            $minConfidence = 80.0;
-            if ($request->face_confidence < $minConfidence) {
+            // Get employee data for face comparison
+            $employee = Employee::find($tokenData['employee_id']);
+            if (!$employee || !$employee->identity_file_name) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Verifikasi wajah gagal. Tingkat kecocokan terlalu rendah.',
+                    'message' => 'Foto karyawan tidak tersedia untuk verifikasi wajah.',
+                ], 422);
+            }
+
+            // Perform actual face comparison with employee's stored photo
+            $faceComparisonService = new FaceComparisonService();
+            $employeePhotoPath = storage_path("app/photo-cache/{$employee->identity_file_name}");
+
+            // Check if photo exists
+            if (!file_exists($employeePhotoPath)) {
+                Log::warning('Employee photo not found for password reset face comparison', [
+                    'employee_id' => $employee->employee_id,
+                    'identity_file_name' => $employee->identity_file_name,
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Foto karyawan tidak ditemukan untuk verifikasi wajah. Hubungi HRD.',
+                ], 422);
+            }
+
+            // Compare faces
+            $faceComparisonResult = $faceComparisonService->compareFaces(
+                $employeePhotoPath,
+                $request->face_image
+            );
+
+            Log::info('Face comparison result for password reset', [
+                'user_id' => $tokenData['user_id'],
+                'employee_id' => $employee->employee_id,
+                'result' => $faceComparisonResult,
+            ]);
+
+            // Check if face comparison was successful
+            if (!$faceComparisonResult['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $faceComparisonResult['message'],
                     'data' => [
-                        'face_confidence' => $request->face_confidence,
-                        'min_required' => $minConfidence,
+                        'face_comparison_error' => true,
+                    ],
+                ], 400);
+            }
+
+            // Check if faces match (minimum 75% similarity required)
+            if (!$faceComparisonResult['match']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Wajah tidak cocok dengan foto karyawan terdaftar.',
+                    'data' => [
+                        'face_confidence' => $faceComparisonResult['confidence'],
+                        'min_required' => $faceComparisonService->getMinConfidence(),
                     ],
                 ], 400);
             }
@@ -944,7 +1049,9 @@ class AuthController extends Controller
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
                 'request_data' => [
-                    'face_confidence' => $request->face_confidence,
+                    'face_confidence' => $faceComparisonResult['confidence'], // Server-side comparison
+                    'face_distance' => $faceComparisonResult['distance'] ?? null,
+                    'liveness_verified' => $request->boolean('liveness_verified'),
                     'face_image_path' => $faceImagePath,
                 ],
                 'response_status' => 200,
