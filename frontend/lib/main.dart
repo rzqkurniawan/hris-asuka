@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'providers/theme_provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/locale_provider.dart';
+import 'l10n/app_localizations.dart';
 import 'theme/app_theme_old.dart';
 import 'screens/splash_screen.dart';
 import 'screens/onboarding_screen.dart';
@@ -37,6 +40,7 @@ void main() async {
         providers: [
           ChangeNotifierProvider(create: (_) => ThemeProvider()),
           ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider(create: (_) => LocaleProvider()),
         ],
         child: const MyApp(),
       ),
@@ -49,8 +53,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child) {
+    return Consumer2<ThemeProvider, LocaleProvider>(
+      builder: (context, themeProvider, localeProvider, child) {
         return ScreenUtilInit(
           designSize: const Size(375, 812), // iPhone X design size
           minTextAdapt: true,
@@ -59,6 +63,16 @@ class MyApp extends StatelessWidget {
             return MaterialApp(
               title: 'HRIS Asuka',
               debugShowCheckedModeBanner: false,
+
+              // Localization Configuration
+              locale: localeProvider.locale,
+              supportedLocales: LocaleProvider.supportedLocales,
+              localizationsDelegates: const [
+                AppLocalizations.delegate,
+                GlobalMaterialLocalizations.delegate,
+                GlobalWidgetsLocalizations.delegate,
+                GlobalCupertinoLocalizations.delegate,
+              ],
 
               // Theme Configuration
               theme: AppTheme.lightTheme,

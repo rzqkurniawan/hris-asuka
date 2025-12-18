@@ -8,6 +8,7 @@ class ProfileMenuItem {
   final String title;
   final String subtitle;
   final Color? color;
+  final Widget? trailing;
   final VoidCallback onTap;
 
   ProfileMenuItem({
@@ -15,6 +16,7 @@ class ProfileMenuItem {
     required this.title,
     required this.subtitle,
     this.color,
+    this.trailing,
     required this.onTap,
   });
 }
@@ -113,8 +115,8 @@ class ProfileMenuList extends StatelessWidget {
                 ],
               ),
             ),
-            // Arrow with colored circle
-            Container(
+            // Trailing widget or default arrow
+            item.trailing ?? Container(
               width: 32.w,
               height: 32.w,
               decoration: BoxDecoration(
