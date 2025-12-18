@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
+import '../l10n/app_localizations.dart';
 import '../widgets/greeting_header.dart';
 import '../widgets/attendance_status_box.dart';
 import '../widgets/menu_grid.dart';
@@ -92,6 +93,7 @@ class _HomePageState extends State<HomePage> {
               final avatarInitials = user?.initials ?? '?';
               final employeeFileName = user?.employeeFileName;
 
+              final l10n = AppLocalizations.of(context);
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -113,8 +115,8 @@ class _HomePageState extends State<HomePage> {
                   // Section Title - Quick Stats (Previous Month)
                   _buildSectionTitle(
                     _statsMonthName.isNotEmpty
-                        ? 'Statistik $_statsMonthName'
-                        : 'Statistik Bulan Lalu',
+                        ? l10n.get('statistics_month').replaceAll('{month}', _statsMonthName)
+                        : l10n.get('last_month_statistics'),
                     Icons.bar_chart_rounded,
                     isDarkMode,
                   ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
@@ -122,13 +124,13 @@ class _HomePageState extends State<HomePage> {
                   SizedBox(height: 12.h),
 
                   // Quick Stats Row
-                  _buildQuickStats(isDarkMode),
+                  _buildQuickStats(isDarkMode, l10n),
 
                   SizedBox(height: 24.h),
 
                   // Section Title - Today's Attendance
                   _buildSectionTitle(
-                    'Absensi Hari Ini',
+                    l10n.todayAttendance,
                     Icons.access_time_rounded,
                     isDarkMode,
                   ).animate().fadeIn(duration: 400.ms, delay: 400.ms),
@@ -147,7 +149,7 @@ class _HomePageState extends State<HomePage> {
 
                   // Section Title - Quick Access
                   _buildSectionTitle(
-                    'Menu Utama',
+                    l10n.get('main_menu'),
                     Icons.apps_rounded,
                     isDarkMode,
                   ).animate().fadeIn(duration: 400.ms, delay: 600.ms),
@@ -159,7 +161,7 @@ class _HomePageState extends State<HomePage> {
                     items: [
                       MenuGridItem(
                         icon: Icons.access_time_filled,
-                        label: 'Overtime\nOrders',
+                        label: l10n.get('overtime_orders'),
                         onTap: () {
                           HapticFeedback.lightImpact();
                           Navigator.push(
@@ -172,7 +174,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       MenuGridItem(
                         icon: Icons.beach_access,
-                        label: 'Employee\nLeave',
+                        label: l10n.get('employee_leave'),
                         onTap: () {
                           HapticFeedback.lightImpact();
                           Navigator.push(
@@ -185,7 +187,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       MenuGridItem(
                         icon: Icons.receipt_long,
-                        label: 'Pay\nSlip',
+                        label: l10n.get('pay_slip_menu'),
                         onTap: () {
                           HapticFeedback.lightImpact();
                           Navigator.push(
@@ -198,7 +200,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       MenuGridItem(
                         icon: Icons.assignment_turned_in,
-                        label: 'Attendance\nHistory',
+                        label: l10n.get('attendance_history_menu'),
                         onTap: () {
                           HapticFeedback.lightImpact();
                           Navigator.push(
@@ -256,7 +258,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildQuickStats(bool isDarkMode) {
+  Widget _buildQuickStats(bool isDarkMode, AppLocalizations l10n) {
     if (_isLoadingStats) {
       return Container(
         height: 100.h,
@@ -268,7 +270,7 @@ class _HomePageState extends State<HomePage> {
           child: SizedBox(
             width: 24.w,
             height: 24.w,
-            child: CircularProgressIndicator(
+            child: const CircularProgressIndicator(
               strokeWidth: 2,
               color: AppColors.accent,
             ),
@@ -300,7 +302,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 SizedBox(height: 8.h),
                 Text(
-                  'Tap to retry',
+                  l10n.get('tap_to_retry'),
                   style: TextStyle(
                     color: isDarkMode
                         ? AppColors.textSecondaryDark
@@ -325,11 +327,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showComingSoonDialog(BuildContext context, String feature) {
+    final l10n = AppLocalizations.of(context);
     HapticFeedback.lightImpact();
     CustomDialog.show(
       context: context,
-      title: 'Coming Soon',
-      message: '$feature feature will be available soon!',
+      title: l10n.get('coming_soon'),
+      message: l10n.get('feature_coming_soon').replaceAll('{feature}', feature),
     );
   }
 }

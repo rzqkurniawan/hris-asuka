@@ -5,12 +5,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../widgets/profile_cover_header.dart';
 import '../widgets/profile_menu_list.dart';
-import '../widgets/change_password_bottom_sheet.dart';
 import '../constants/app_colors.dart';
 import '../utils/page_transitions.dart';
 import '../providers/auth_provider.dart';
-import '../providers/theme_provider.dart';
-import '../providers/locale_provider.dart';
 import '../l10n/app_localizations.dart';
 import 'employee_data_screen.dart';
 import 'family_data_screen.dart';
@@ -34,8 +31,8 @@ class ProfilePage extends StatelessWidget {
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
           padding: EdgeInsets.all(20.w),
-          child: Consumer3<AuthProvider, LocaleProvider, ThemeProvider>(
-            builder: (context, authProvider, localeProvider, themeProvider, child) {
+          child: Consumer<AuthProvider>(
+            builder: (context, authProvider, child) {
               final l10n = AppLocalizations.of(context);
               final user = authProvider.user;
               final name = user?.fullname ?? 'User';
@@ -185,63 +182,10 @@ class ProfilePage extends StatelessWidget {
                           );
                         },
                       ),
-                      ProfileMenuItem(
-                        icon: Icons.lock_outline_rounded,
-                        title: l10n.changePassword,
-                        subtitle: l10n.get('change_password_subtitle'),
-                        color: AppColors.error,
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          showChangePasswordBottomSheet(context);
-                        },
-                      ),
                     ],
                   )
                       .animate()
                       .fadeIn(duration: 500.ms, delay: 300.ms)
-                      .slideY(begin: 0.1, end: 0),
-
-                  SizedBox(height: 24.h),
-
-                  // Section Title - Settings
-                  _buildSectionTitle(
-                    l10n.settings,
-                    Icons.settings_rounded,
-                    isDarkMode,
-                  ).animate().fadeIn(duration: 400.ms, delay: 400.ms),
-
-                  SizedBox(height: 12.h),
-
-                  // Settings Menu
-                  ProfileMenuList(
-                    isDarkMode: isDarkMode,
-                    items: [
-                      ProfileMenuItem(
-                        icon: Icons.language_rounded,
-                        title: l10n.language,
-                        subtitle: localeProvider.currentLanguageName,
-                        color: AppColors.accent,
-                        trailing: _buildLanguageSwitch(context, localeProvider, isDarkMode),
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          _showLanguageDialog(context, localeProvider, isDarkMode);
-                        },
-                      ),
-                      ProfileMenuItem(
-                        icon: isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
-                        title: l10n.theme,
-                        subtitle: isDarkMode ? l10n.darkMode : l10n.lightMode,
-                        color: isDarkMode ? Colors.indigo : Colors.amber,
-                        trailing: _buildThemeSwitch(context, themeProvider, isDarkMode),
-                        onTap: () {
-                          HapticFeedback.lightImpact();
-                          themeProvider.toggleTheme();
-                        },
-                      ),
-                    ],
-                  )
-                      .animate()
-                      .fadeIn(duration: 500.ms, delay: 500.ms)
                       .slideY(begin: 0.1, end: 0),
 
                   SizedBox(height: 110.h), // Space for bottom nav
@@ -282,133 +226,6 @@ class ProfilePage extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildLanguageSwitch(BuildContext context, LocaleProvider localeProvider, bool isDarkMode) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
-      decoration: BoxDecoration(
-        color: AppColors.accent.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            localeProvider.isIndonesian ? 'ID' : 'EN',
-            style: TextStyle(
-              fontSize: 12.sp,
-              fontWeight: FontWeight.w600,
-              color: AppColors.accent,
-            ),
-          ),
-          SizedBox(width: 4.w),
-          Icon(
-            Icons.arrow_drop_down,
-            color: AppColors.accent,
-            size: 16.sp,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildThemeSwitch(BuildContext context, ThemeProvider themeProvider, bool isDarkMode) {
-    return Switch(
-      value: isDarkMode,
-      onChanged: (value) {
-        HapticFeedback.lightImpact();
-        themeProvider.toggleTheme();
-      },
-      activeColor: AppColors.accent,
-      activeTrackColor: AppColors.accent.withOpacity(0.3),
-    );
-  }
-
-  void _showLanguageDialog(BuildContext context, LocaleProvider localeProvider, bool isDarkMode) {
-    final l10n = AppLocalizations.of(context);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.r),
-        ),
-        title: Row(
-          children: [
-            Icon(
-              Icons.language_rounded,
-              color: AppColors.accent,
-              size: 24.sp,
-            ),
-            SizedBox(width: 12.w),
-            Text(
-              l10n.language,
-              style: TextStyle(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w600,
-                color: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: LocaleProvider.supportedLocales.map((locale) {
-            final isSelected = localeProvider.locale.languageCode == locale.languageCode;
-            final languageName = LocaleProvider.languageNames[locale.languageCode] ?? locale.languageCode;
-
-            return ListTile(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                localeProvider.setLocale(locale);
-                Navigator.pop(context);
-              },
-              leading: Container(
-                width: 40.w,
-                height: 40.w,
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColors.accent.withOpacity(0.2)
-                      : (isDarkMode ? AppColors.overlayDark : AppColors.overlayLight),
-                  borderRadius: BorderRadius.circular(10.r),
-                ),
-                child: Center(
-                  child: Text(
-                    locale.languageCode.toUpperCase(),
-                    style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w700,
-                      color: isSelected ? AppColors.accent : (isDarkMode ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                    ),
-                  ),
-                ),
-              ),
-              title: Text(
-                languageName,
-                style: TextStyle(
-                  fontSize: 14.sp,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  color: isSelected
-                      ? AppColors.accent
-                      : (isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
-                ),
-              ),
-              trailing: isSelected
-                  ? Icon(Icons.check_circle, color: AppColors.accent, size: 20.sp)
-                  : null,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10.r),
-              ),
-              tileColor: isSelected
-                  ? AppColors.accent.withOpacity(0.1)
-                  : Colors.transparent,
-            );
-          }).toList(),
-        ),
-      ),
     );
   }
 }

@@ -7,6 +7,7 @@ import '../utils/toast_utils.dart';
 import '../utils/page_transitions.dart';
 import '../services/auth_service.dart';
 import '../providers/auth_provider.dart';
+import '../l10n/app_localizations.dart';
 import 'main_screen.dart';
 import 'forgot_password_screen.dart';
 
@@ -111,9 +112,10 @@ class _LoginScreenState extends State<LoginScreen> {
           final displayName = user.fullname.length > 25
               ? '${user.fullname.substring(0, 25)}...'
               : user.fullname;
+          final l10n = AppLocalizations.of(context);
           ToastUtils.showSuccess(
             context,
-            'Welcome, $displayName!',
+            l10n.get('welcome_user').replaceAll('{name}', displayName),
           );
         }
       }
@@ -132,6 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
@@ -197,7 +200,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // Title
                 Text(
-                  'Welcome Back',
+                  l10n.welcomeBack,
                   style: TextStyle(
                     fontSize: 29,
                     fontWeight: FontWeight.w700,
@@ -210,7 +213,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // Subtitle
                 Text(
-                  'Sign in to continue',
+                  l10n.get('sign_in_to_continue'),
                   style: TextStyle(
                     fontSize: 14,
                     color: isDark
@@ -249,7 +252,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       // Username Field
                       Text(
-                        'Username',
+                        l10n.username,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -260,7 +263,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextFormField(
                         controller: _usernameController,
                         decoration: InputDecoration(
-                          hintText: 'Enter your username',
+                          hintText: l10n.get('enter_username'),
                           hintStyle: TextStyle(
                             color: isDark
                                 ? AppColors.textSecondaryDark
@@ -302,7 +305,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Username is required';
+                            return l10n.fieldRequired;
                           }
                           return null;
                         },
@@ -312,7 +315,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       // Password Field
                       Text(
-                        'Password',
+                        l10n.password,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -324,7 +327,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         controller: _passwordController,
                         obscureText: !_isPasswordVisible,
                         decoration: InputDecoration(
-                          hintText: 'Enter your password',
+                          hintText: l10n.get('enter_password'),
                           hintStyle: TextStyle(
                             color: isDark
                                 ? AppColors.textSecondaryDark
@@ -381,10 +384,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Password is required';
+                            return l10n.fieldRequired;
                           }
                           if (value.length < 6) {
-                            return 'Password must be at least 6 characters';
+                            return l10n.get('min_length').replaceAll('{0}', '6');
                           }
                           return null;
                         },
@@ -413,7 +416,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Remember Me',
+                                l10n.get('remember_me'),
                                 style: TextStyle(
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w500,
@@ -440,7 +443,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             child: Text(
-                              'Lupa Password?',
+                              '${l10n.forgotPassword}?',
                               style: TextStyle(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.w600,
@@ -475,9 +478,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     color: AppColors.overlayLight,
                                   ),
                                 )
-                              : const Text(
-                                  'Login',
-                                  style: TextStyle(
+                              : Text(
+                                  l10n.login,
+                                  style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -507,7 +510,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "Don't have an account? ",
+                        '${l10n.dontHaveAccount} ',
                         style: TextStyle(
                           color: isDark
                               ? AppColors.textSecondaryDark
@@ -526,7 +529,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             if (mounted) {
                               ToastUtils.showSuccess(
                                 context,
-                                'Registration successful! Please login.',
+                                l10n.registerSuccess,
                               );
                             }
                           }
@@ -537,7 +540,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: Text(
-                          'Register Now',
+                          l10n.get('register_now'),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -553,7 +556,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 // Footer
                 Text(
-                  '© 2025 HRIS Asuka. All rights reserved.',
+                  l10n.get('all_rights_reserved'),
                   style: TextStyle(
                     fontSize: 12,
                     color: isDark

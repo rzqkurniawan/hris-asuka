@@ -5,6 +5,7 @@ import '../constants/app_spacing.dart';
 import '../services/auth_service.dart';
 import '../services/api_client.dart';
 import '../utils/toast_utils.dart';
+import '../l10n/app_localizations.dart';
 
 class ChangePasswordBottomSheet extends StatefulWidget {
   const ChangePasswordBottomSheet({super.key});
@@ -59,42 +60,42 @@ class _ChangePasswordBottomSheetState extends State<ChangePasswordBottomSheet> {
     super.dispose();
   }
 
-  String? _validateNewPassword(String? value) {
+  String? _validateNewPassword(String? value, AppLocalizations l10n) {
     if (value == null || value.isEmpty) {
-      return 'Password baru wajib diisi';
+      return l10n.get('new_password_required');
     }
 
     if (value.length < 12) {
-      return 'Password minimal 12 karakter';
+      return l10n.get('password_min_12');
     }
 
     if (value.length > 128) {
-      return 'Password maksimal 128 karakter';
+      return l10n.get('password_max_128');
     }
 
     if (!RegExp(r'[A-Z]').hasMatch(value)) {
-      return 'Password harus ada huruf besar (A-Z)';
+      return l10n.get('password_need_uppercase');
     }
 
     if (!RegExp(r'[a-z]').hasMatch(value)) {
-      return 'Password harus ada huruf kecil (a-z)';
+      return l10n.get('password_need_lowercase');
     }
 
     if (!RegExp(r'\d').hasMatch(value)) {
-      return 'Password harus ada angka (0-9)';
+      return l10n.get('password_need_number');
     }
 
     if (!RegExp(r'[@$!%*?&#^()_+=\[\]{};:' "'" r'",.<>\/\\|`~-]')
         .hasMatch(value)) {
-      return 'Password harus ada karakter khusus (!@#\$%^&*)';
+      return l10n.get('password_need_special');
     }
 
     if (_commonPasswords.contains(value.toLowerCase())) {
-      return 'Password terlalu umum';
+      return l10n.get('password_too_common');
     }
 
     if (value == _currentPasswordController.text) {
-      return 'Password baru harus berbeda dengan password lama';
+      return l10n.get('password_must_different');
     }
 
     return null;
@@ -117,7 +118,8 @@ class _ChangePasswordBottomSheetState extends State<ChangePasswordBottomSheet> {
 
       if (mounted) {
         HapticFeedback.heavyImpact();
-        ToastUtils.showSuccess(context, 'Password berhasil diubah');
+        final l10n = AppLocalizations.of(context);
+        ToastUtils.showSuccess(context, l10n.get('password_changed_success'));
         Navigator.of(context).pop(true);
       }
     } on ApiException catch (e) {
@@ -128,7 +130,8 @@ class _ChangePasswordBottomSheetState extends State<ChangePasswordBottomSheet> {
     } catch (e) {
       if (mounted) {
         HapticFeedback.lightImpact();
-        ToastUtils.showError(context, 'Gagal mengubah password');
+        final l10n = AppLocalizations.of(context);
+        ToastUtils.showError(context, l10n.get('password_change_failed'));
       }
     } finally {
       if (mounted) {
@@ -140,6 +143,7 @@ class _ChangePasswordBottomSheetState extends State<ChangePasswordBottomSheet> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.75,
@@ -172,7 +176,7 @@ class _ChangePasswordBottomSheetState extends State<ChangePasswordBottomSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Ubah Password',
+                  l10n.changePassword,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -219,7 +223,7 @@ class _ChangePasswordBottomSheetState extends State<ChangePasswordBottomSheet> {
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
-                              'Password harus minimal 12 karakter, mengandung huruf besar, huruf kecil, angka, dan karakter khusus.',
+                              l10n.get('password_min_12_chars'),
                               style: Theme.of(context)
                                   .textTheme
                                   .bodySmall
@@ -239,7 +243,7 @@ class _ChangePasswordBottomSheetState extends State<ChangePasswordBottomSheet> {
                       controller: _currentPasswordController,
                       obscureText: !_isCurrentPasswordVisible,
                       decoration: InputDecoration(
-                        labelText: 'Password Lama',
+                        labelText: l10n.currentPassword,
                         prefixIcon: const Icon(Icons.lock_outline),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -261,7 +265,7 @@ class _ChangePasswordBottomSheetState extends State<ChangePasswordBottomSheet> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Password lama wajib diisi';
+                          return l10n.fieldRequired;
                         }
                         return null;
                       },
@@ -274,7 +278,7 @@ class _ChangePasswordBottomSheetState extends State<ChangePasswordBottomSheet> {
                       controller: _newPasswordController,
                       obscureText: !_isNewPasswordVisible,
                       decoration: InputDecoration(
-                        labelText: 'Password Baru',
+                        labelText: l10n.newPassword,
                         prefixIcon: const Icon(Icons.lock),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -295,7 +299,7 @@ class _ChangePasswordBottomSheetState extends State<ChangePasswordBottomSheet> {
                         counterText: '',
                       ),
                       maxLength: 128,
-                      validator: _validateNewPassword,
+                      validator: (value) => _validateNewPassword(value, l10n),
                     ),
 
                     const SizedBox(height: AppSpacing.lg),
@@ -305,7 +309,7 @@ class _ChangePasswordBottomSheetState extends State<ChangePasswordBottomSheet> {
                       controller: _confirmPasswordController,
                       obscureText: !_isConfirmPasswordVisible,
                       decoration: InputDecoration(
-                        labelText: 'Konfirmasi Password Baru',
+                        labelText: l10n.confirmPassword,
                         prefixIcon: const Icon(Icons.lock_clock),
                         suffixIcon: IconButton(
                           icon: Icon(
@@ -329,10 +333,10 @@ class _ChangePasswordBottomSheetState extends State<ChangePasswordBottomSheet> {
                       maxLength: 128,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Konfirmasi password wajib diisi';
+                          return l10n.fieldRequired;
                         }
                         if (value != _newPasswordController.text) {
-                          return 'Konfirmasi password tidak cocok';
+                          return l10n.passwordNotMatch;
                         }
                         return null;
                       },
@@ -363,9 +367,9 @@ class _ChangePasswordBottomSheetState extends State<ChangePasswordBottomSheet> {
                                       Colors.white),
                                 ),
                               )
-                            : const Text(
-                                'Ubah Password',
-                                style: TextStyle(
+                            : Text(
+                                l10n.changePassword,
+                                style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),

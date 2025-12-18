@@ -5,6 +5,7 @@ import '../constants/app_spacing.dart';
 import '../services/auth_service.dart';
 import '../services/api_client.dart';
 import '../utils/toast_utils.dart';
+import '../l10n/app_localizations.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String resetToken;
@@ -65,38 +66,38 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     super.dispose();
   }
 
-  String? _validateNewPassword(String? value) {
+  String? _validateNewPassword(String? value, AppLocalizations l10n) {
     if (value == null || value.isEmpty) {
-      return 'Password baru wajib diisi';
+      return l10n.get('new_password_required');
     }
 
     if (value.length < 12) {
-      return 'Password minimal 12 karakter';
+      return l10n.get('password_min_12');
     }
 
     if (value.length > 128) {
-      return 'Password maksimal 128 karakter';
+      return l10n.get('password_max_128');
     }
 
     if (!RegExp(r'[A-Z]').hasMatch(value)) {
-      return 'Password harus ada huruf besar (A-Z)';
+      return l10n.get('password_need_uppercase');
     }
 
     if (!RegExp(r'[a-z]').hasMatch(value)) {
-      return 'Password harus ada huruf kecil (a-z)';
+      return l10n.get('password_need_lowercase');
     }
 
     if (!RegExp(r'\d').hasMatch(value)) {
-      return 'Password harus ada angka (0-9)';
+      return l10n.get('password_need_number');
     }
 
     if (!RegExp(r'[@$!%*?&#^()_+=\[\]{};:' "'" r'",.<>\/\\|`~-]')
         .hasMatch(value)) {
-      return 'Password harus ada karakter khusus (!@#\$%^&*)';
+      return l10n.get('password_need_special');
     }
 
     if (_commonPasswords.contains(value.toLowerCase())) {
-      return 'Password terlalu umum';
+      return l10n.get('password_too_common');
     }
 
     return null;
@@ -135,12 +136,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         HapticFeedback.mediumImpact();
-        ToastUtils.showError(context, 'Gagal mereset password');
+        final l10n = AppLocalizations.of(context);
+        ToastUtils.showError(context, l10n.get('password_change_failed'));
       }
     }
   }
 
   void _showSuccessDialog() {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -164,9 +167,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'Password Berhasil Direset!',
-              style: TextStyle(
+            Text(
+              l10n.get('password_reset_success'),
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -174,7 +177,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Silakan login dengan password baru Anda.',
+              l10n.get('login_with_new_password'),
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[600],
@@ -201,7 +204,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text('Login Sekarang'),
+                child: Text(l10n.loginNow),
               ),
             ),
           ],
@@ -213,12 +216,13 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor:
           isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text('Reset Password'),
+        title: Text(l10n.resetPassword),
         backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
         foregroundColor: isDark ? Colors.white : AppColors.textPrimary,
         elevation: 0,
@@ -266,7 +270,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           color: Colors.green, size: 18),
                       const SizedBox(width: 8),
                       Text(
-                        'Identitas Terverifikasi',
+                        l10n.get('identity_verified'),
                         style: TextStyle(
                           color: Colors.green[700],
                           fontWeight: FontWeight.w600,
@@ -280,7 +284,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
                 // Title
                 Text(
-                  'Buat Password Baru',
+                  l10n.get('create_new_password'),
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w700,
@@ -294,7 +298,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 const SizedBox(height: 8),
 
                 Text(
-                  'Masukkan password baru untuk akun Anda',
+                  l10n.get('enter_new_password_desc'),
                   style: TextStyle(
                     fontSize: 14,
                     color: isDark
@@ -328,7 +332,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(
-                          'Password harus minimal 12 karakter, mengandung huruf besar, huruf kecil, angka, dan karakter khusus.',
+                          l10n.get('password_min_12_chars'),
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.blue[700],
@@ -368,7 +372,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                     children: [
                       // New password field
                       Text(
-                        'Password Baru',
+                        l10n.newPassword,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -382,7 +386,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         controller: _newPasswordController,
                         obscureText: !_isNewPasswordVisible,
                         decoration: InputDecoration(
-                          hintText: 'Masukkan password baru',
+                          hintText: l10n.get('enter_new_password'),
                           hintStyle: TextStyle(
                             color: isDark
                                 ? AppColors.textSecondaryDark
@@ -442,14 +446,14 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           counterText: '',
                         ),
                         maxLength: 128,
-                        validator: _validateNewPassword,
+                        validator: (value) => _validateNewPassword(value, l10n),
                       ),
 
                       const SizedBox(height: 20),
 
                       // Confirm password field
                       Text(
-                        'Konfirmasi Password Baru',
+                        l10n.get('confirm_new_password'),
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -463,7 +467,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         controller: _confirmPasswordController,
                         obscureText: !_isConfirmPasswordVisible,
                         decoration: InputDecoration(
-                          hintText: 'Konfirmasi password baru',
+                          hintText: l10n.get('confirm_new_password_hint'),
                           hintStyle: TextStyle(
                             color: isDark
                                 ? AppColors.textSecondaryDark
@@ -526,10 +530,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         maxLength: 128,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Konfirmasi password wajib diisi';
+                            return l10n.fieldRequired;
                           }
                           if (value != _newPasswordController.text) {
-                            return 'Konfirmasi password tidak cocok';
+                            return l10n.passwordNotMatch;
                           }
                           return null;
                         },
@@ -560,9 +564,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                         Colors.white),
                                   ),
                                 )
-                              : const Text(
-                                  'Reset Password',
-                                  style: TextStyle(
+                              : Text(
+                                  l10n.resetPassword,
+                                  style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                   ),

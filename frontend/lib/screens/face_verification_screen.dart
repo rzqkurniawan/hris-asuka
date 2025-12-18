@@ -11,6 +11,7 @@ import 'package:image/image.dart' as img;
 import '../constants/app_colors.dart';
 import '../services/mobile_attendance_service.dart';
 import '../services/device_security_service.dart';
+import '../l10n/app_localizations.dart';
 
 /// Random challenge types for anti-spoofing liveness detection
 enum LivenessChallenge {
@@ -124,7 +125,7 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
       _cameras = await availableCameras();
       if (_cameras == null || _cameras!.isEmpty) {
         setState(() {
-          _errorMessage = 'Tidak ada kamera yang tersedia';
+          _errorMessage = 'no_camera_available'; // Will be localized in UI
         });
         return;
       }

@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import '../constants/app_colors.dart';
+import '../l10n/app_localizations.dart';
 import 'employee_avatar.dart';
 
 class GreetingHeader extends StatelessWidget {
@@ -23,16 +24,16 @@ class GreetingHeader extends StatelessWidget {
     this.isDarkMode = false,
   });
 
-  String _getGreeting() {
+  String _getGreeting(AppLocalizations l10n) {
     final hour = DateTime.now().hour;
     if (hour < 12) {
-      return 'Selamat Pagi';
+      return l10n.goodMorning;
     } else if (hour < 15) {
-      return 'Selamat Siang';
+      return l10n.goodAfternoon;
     } else if (hour < 18) {
-      return 'Selamat Sore';
+      return l10n.goodEvening;
     } else {
-      return 'Selamat Malam';
+      return l10n.goodNight;
     }
   }
 
@@ -67,7 +68,9 @@ class GreetingHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final today = DateFormat('EEEE, d MMMM yyyy', 'id_ID').format(DateTime.now());
+    final l10n = AppLocalizations.of(context);
+    final locale = l10n.locale.languageCode == 'en' ? 'en_US' : 'id_ID';
+    final today = DateFormat('EEEE, d MMMM yyyy', locale).format(DateTime.now());
 
     return Container(
       padding: EdgeInsets.all(20.w),
@@ -122,7 +125,7 @@ class GreetingHeader extends StatelessWidget {
                             ),
                         SizedBox(width: 8.w),
                         Text(
-                          _getGreeting(),
+                          _getGreeting(l10n),
                           style: TextStyle(
                             fontSize: 14.sp,
                             fontWeight: FontWeight.w500,
@@ -233,7 +236,7 @@ class GreetingHeader extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Position',
+                              l10n.position,
                               style: TextStyle(
                                 fontSize: 10.sp,
                                 color: Colors.white.withOpacity(0.7),
@@ -283,7 +286,7 @@ class GreetingHeader extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Employee ID',
+                              l10n.employeeId,
                               style: TextStyle(
                                 fontSize: 10.sp,
                                 color: Colors.white.withOpacity(0.7),

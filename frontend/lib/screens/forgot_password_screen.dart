@@ -6,6 +6,7 @@ import '../services/api_client.dart';
 import '../utils/toast_utils.dart';
 import '../utils/page_transitions.dart';
 import '../utils/debug_logger.dart';
+import '../l10n/app_localizations.dart';
 import 'face_verification_reset_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -74,7 +75,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         HapticFeedback.mediumImpact();
-        ToastUtils.showError(context, 'Gagal memverifikasi identitas: ${e.toString()}');
+        final l10n = AppLocalizations.of(context);
+        ToastUtils.showError(context, '${l10n.somethingWentWrong}: ${e.toString()}');
       }
     }
   }
@@ -82,11 +84,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.backgroundDark : AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text('Lupa Password'),
+        title: Text(l10n.forgotPassword),
         backgroundColor: isDark ? AppColors.surfaceDark : Colors.white,
         foregroundColor: isDark ? Colors.white : AppColors.textPrimary,
         elevation: 0,
@@ -122,7 +125,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                 // Title
                 Text(
-                  'Reset Password',
+                  l10n.get('verify_identity'),
                   style: TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.w700,
@@ -135,7 +138,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                 // Subtitle
                 Text(
-                  'Masukkan username dan NIK Anda untuk verifikasi identitas',
+                  l10n.get('enter_username_nik_verify'),
                   style: TextStyle(
                     fontSize: 14,
                     color: isDark
@@ -169,7 +172,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'Setelah verifikasi identitas, Anda akan diminta untuk melakukan verifikasi wajah.',
+                          l10n.get('after_verify_face'),
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.blue[700],
@@ -209,7 +212,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     children: [
                       // Username Field
                       Text(
-                        'Username',
+                        l10n.username,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -220,7 +223,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       TextFormField(
                         controller: _usernameController,
                         decoration: InputDecoration(
-                          hintText: 'Masukkan username Anda',
+                          hintText: l10n.get('enter_username'),
                           hintStyle: TextStyle(
                             color: isDark
                                 ? AppColors.textSecondaryDark
@@ -262,7 +265,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Username wajib diisi';
+                            return l10n.fieldRequired;
                           }
                           return null;
                         },
@@ -272,7 +275,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                       // NIK Field
                       Text(
-                        'NIK (Nomor Induk Kependudukan)',
+                        l10n.get('nik_full'),
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -288,7 +291,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           FilteringTextInputFormatter.digitsOnly,
                         ],
                         decoration: InputDecoration(
-                          hintText: 'Masukkan 16 digit NIK',
+                          hintText: l10n.get('enter_16_digit_nik_hint'),
                           hintStyle: TextStyle(
                             color: isDark
                                 ? AppColors.textSecondaryDark
@@ -331,10 +334,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'NIK wajib diisi';
+                            return l10n.fieldRequired;
                           }
                           if (value.length != 16) {
-                            return 'NIK harus 16 digit';
+                            return l10n.nikDigits;
                           }
                           return null;
                         },
@@ -364,9 +367,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                     color: Colors.white,
                                   ),
                                 )
-                              : const Text(
-                                  'Verifikasi Identitas',
-                                  style: TextStyle(
+                              : Text(
+                                  l10n.get('verify_identity'),
+                                  style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -386,7 +389,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       Navigator.pop(context);
                     },
                     child: Text(
-                      'Kembali ke Login',
+                      l10n.get('back_to_login'),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,

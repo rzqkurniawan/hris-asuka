@@ -6,6 +6,7 @@ import '../constants/app_colors.dart';
 import '../services/device_security_service.dart';
 import '../services/mobile_attendance_service.dart';
 import '../utils/page_transitions.dart';
+import '../l10n/app_localizations.dart';
 import 'face_verification_screen.dart';
 
 class MobileAttendanceScreen extends StatefulWidget {
@@ -74,19 +75,18 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          throw Exception('Izin lokasi ditolak');
+          throw Exception('location_permission_denied');
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        throw Exception(
-            'Izin lokasi ditolak secara permanen. Silakan aktifkan di pengaturan.');
+        throw Exception('location_permission_permanent');
       }
 
       // Check if location service is enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        throw Exception('Layanan lokasi tidak aktif. Silakan aktifkan GPS.');
+        throw Exception('location_service_inactive');
       }
 
       // Get current position
@@ -103,7 +103,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
 
       // Check if mock location is detected
       if (_securityService.shouldBlockAttendance(securityData)) {
-        throw Exception('Fake GPS terdeteksi! Absensi tidak dapat dilakukan.');
+        throw Exception('fake_gps_detected');
       }
 
       setState(() {
@@ -127,9 +127,12 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
       });
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        final errorKey = e.toString().replaceAll('Exception: ', '');
+        final errorMessage = l10n.get(errorKey);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
+            content: Text(errorMessage == errorKey ? e.toString() : errorMessage),
             backgroundColor: Colors.red,
           ),
         );
@@ -139,9 +142,10 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
 
   void _proceedToFaceVerification(String checkType) {
     if (_currentPosition == null || _locationValidation == null) {
+      final l10n = AppLocalizations.of(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Silakan verifikasi lokasi terlebih dahulu'),
+        SnackBar(
+          content: Text(l10n.get('verify_location_first')),
           backgroundColor: Colors.orange,
         ),
       );
@@ -187,12 +191,13 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       backgroundColor:
           isDarkMode ? AppColors.backgroundDark : AppColors.backgroundLight,
       appBar: AppBar(
-        title: const Text('Absensi'),
+        title: Text(l10n.attendance),
         backgroundColor: isDarkMode ? AppColors.cardDark : AppColors.surfaceLight,
         foregroundColor: isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimary,
         elevation: 0,
@@ -200,12 +205,12 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
-              ? _buildErrorWidget()
-              : _buildContent(isDarkMode),
+              ? _buildErrorWidget(l10n)
+              : _buildContent(isDarkMode, l10n),
     );
   }
 
-  Widget _buildErrorWidget() {
+  Widget _buildErrorWidget(AppLocalizations l10n) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -222,7 +227,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadData,
-              child: const Text('Coba Lagi'),
+              child: Text(l10n.retry),
             ),
           ],
         ),
@@ -230,7 +235,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
     );
   }
 
-  Widget _buildContent(bool isDarkMode) {
+  Widget _buildContent(bool isDarkMode, AppLocalizations l10n) {
     return RefreshIndicator(
       onRefresh: _loadData,
       child: SingleChildScrollView(
@@ -240,26 +245,26 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Today Status Card
-            _buildTodayStatusCard(isDarkMode),
+            _buildTodayStatusCard(isDarkMode, l10n),
             const SizedBox(height: 20),
 
             // Location Verification Card
-            _buildLocationCard(isDarkMode),
+            _buildLocationCard(isDarkMode, l10n),
             const SizedBox(height: 20),
 
             // Check In / Check Out Buttons
-            _buildActionButtons(isDarkMode),
+            _buildActionButtons(isDarkMode, l10n),
             const SizedBox(height: 20),
 
             // Available Locations Info
-            _buildLocationsInfo(isDarkMode),
+            _buildLocationsInfo(isDarkMode, l10n),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTodayStatusCard(bool isDarkMode) {
+  Widget _buildTodayStatusCard(bool isDarkMode, AppLocalizations l10n) {
     final status = _todayStatus;
 
     return Container(
@@ -280,7 +285,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Status Hari Ini',
+            l10n.todayAttendance,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -302,7 +307,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
                 child: _buildStatusItem(
                   isDarkMode: isDarkMode,
                   icon: Icons.login,
-                  label: 'Check In',
+                  label: l10n.checkIn,
                   time: status?.checkIn?.time,
                   location: status?.checkIn?.location,
                   isVerified: status?.checkIn != null,
@@ -314,7 +319,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
                 child: _buildStatusItem(
                   isDarkMode: isDarkMode,
                   icon: Icons.logout,
-                  label: 'Check Out',
+                  label: l10n.checkOut,
                   time: status?.checkOut?.time,
                   location: status?.checkOut?.location,
                   isVerified: status?.checkOut != null,
@@ -392,7 +397,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
     );
   }
 
-  Widget _buildLocationCard(bool isDarkMode) {
+  Widget _buildLocationCard(bool isDarkMode, AppLocalizations l10n) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -418,7 +423,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                'Verifikasi Lokasi',
+                l10n.verifyLocation,
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -461,8 +466,8 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
                       children: [
                         Text(
                           _locationValidation!.isValid
-                              ? 'Lokasi Valid'
-                              : 'Lokasi Tidak Valid',
+                              ? l10n.locationVerified
+                              : l10n.locationNotVerified,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: _locationValidation!.isValid
@@ -475,8 +480,8 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
                           _locationValidation!.isValid
                               ? '${_locationValidation!.locationName} (${_locationValidation!.distanceMeters?.toStringAsFixed(0)}m)'
                               : _locationValidation!.nearestLocation != null
-                                  ? 'Terdekat: ${_locationValidation!.nearestLocation} (${_locationValidation!.distanceToNearest?.toStringAsFixed(0)}m)'
-                                  : 'Tidak ada lokasi dalam radius',
+                                  ? '${l10n.get('nearest')}: ${_locationValidation!.nearestLocation} (${_locationValidation!.distanceToNearest?.toStringAsFixed(0)}m)'
+                                  : l10n.get('no_location_in_radius'),
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey[600],
@@ -507,10 +512,10 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
                     )
                   : const Icon(Icons.my_location),
               label: Text(_isCheckingLocation
-                  ? 'Memeriksa Lokasi...'
+                  ? l10n.get('checking_location')
                   : _locationValidation != null
-                      ? 'Perbarui Lokasi'
-                      : 'Cek Lokasi Saya'),
+                      ? l10n.get('update_location')
+                      : l10n.get('check_my_location')),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: AppColors.overlayLight,
@@ -525,7 +530,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
           if (_currentPosition != null) ...[
             const SizedBox(height: 8),
             Text(
-              'Koordinat: ${_currentPosition!.latitude.toStringAsFixed(6)}, ${_currentPosition!.longitude.toStringAsFixed(6)}',
+              '${l10n.get('coordinates')}: ${_currentPosition!.latitude.toStringAsFixed(6)}, ${_currentPosition!.longitude.toStringAsFixed(6)}',
               style: TextStyle(
                 fontSize: 11,
                 color: Colors.grey[500],
@@ -537,7 +542,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
     );
   }
 
-  Widget _buildActionButtons(bool isDarkMode) {
+  Widget _buildActionButtons(bool isDarkMode, AppLocalizations l10n) {
     final canCheckIn = _todayStatus?.canCheckIn ?? false;
     final canCheckOut = _todayStatus?.canCheckOut ?? false;
     final locationValid = _locationValidation?.isValid ?? false;
@@ -551,9 +556,9 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
                 ? () => _proceedToFaceVerification('check_in')
                 : null,
             icon: const Icon(Icons.login, size: 28),
-            label: const Text(
-              'CHECK IN',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            label: Text(
+              l10n.checkIn.toUpperCase(),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.statusWork,
@@ -576,9 +581,9 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
                 ? () => _proceedToFaceVerification('check_out')
                 : null,
             icon: const Icon(Icons.logout, size: 28),
-            label: const Text(
-              'CHECK OUT',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            label: Text(
+              l10n.checkOut.toUpperCase(),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.info,
@@ -596,7 +601,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
     );
   }
 
-  Widget _buildLocationsInfo(bool isDarkMode) {
+  Widget _buildLocationsInfo(bool isDarkMode, AppLocalizations l10n) {
     if (_locations.isEmpty) return const SizedBox.shrink();
 
     return Container(
@@ -617,7 +622,7 @@ class _MobileAttendanceScreenState extends State<MobileAttendanceScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Lokasi Absensi',
+            l10n.get('attendance_locations'),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,

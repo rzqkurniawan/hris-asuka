@@ -7,6 +7,7 @@ import '../services/api_client.dart';
 import '../utils/toast_utils.dart';
 import '../utils/debug_logger.dart';
 import '../config/api_config.dart';
+import '../l10n/app_localizations.dart';
 import 'face_verification_register_screen.dart';
 import 'dart:async';
 
@@ -127,9 +128,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (avatarUrl == null || avatarUrl.isEmpty) {
         setState(() => _isLoading = false);
         HapticFeedback.mediumImpact();
+        final l10n = AppLocalizations.of(context);
         ToastUtils.showError(
           context,
-          'Foto karyawan tidak ditemukan. Hubungi HRD untuk update foto.',
+          '${l10n.get('face_required')}. ${l10n.contactHrd}.',
         );
         return;
       }
@@ -174,9 +176,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         setState(() => _isLoading = false);
         HapticFeedback.mediumImpact();
         DebugLogger.error('Register error', error: e, tag: 'Register');
+        final l10n = AppLocalizations.of(context);
         ToastUtils.showError(
           context,
-          'Terjadi kesalahan: ${e.toString()}',
+          '${l10n.somethingWentWrong}: ${e.toString()}',
         );
       }
     }
@@ -194,10 +197,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final hasEmployeeError = _employeeFieldTouched && _selectedEmployee == null;
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Register'),
+        title: Text(l10n.register),
         elevation: 0,
       ),
       body: SafeArea(
@@ -243,7 +247,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 // Title
                 Text(
-                  'Create Account',
+                  l10n.get('create_account'),
                   style: Theme.of(context).textTheme.displaySmall?.copyWith(
                         fontSize: 29,
                         fontWeight: FontWeight.w700,
@@ -255,7 +259,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 // Subtitle
                 Text(
-                  'Register to get started',
+                  l10n.get('register_to_start'),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: isDark
                             ? AppColors.textSecondaryDark
@@ -275,7 +279,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       children: [
                         // Employee Selector
                         Text(
-                          'Select Employee',
+                          l10n.selectEmployee,
                           style:
                               Theme.of(context).textTheme.labelLarge?.copyWith(
                                     fontSize: 14,
@@ -295,7 +299,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           TextFormField(
                             controller: _searchController,
                             decoration: InputDecoration(
-                              hintText: 'Type at least 3 characters to search...',
+                              hintText: l10n.get('type_to_search'),
                               prefixIcon: const Icon(Icons.search),
                               suffixIcon: _searchController.text.isNotEmpty
                                   ? IconButton(
@@ -308,7 +312,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     )
                                   : null,
                               errorText: hasEmployeeError
-                                  ? 'Employee selection is required'
+                                  ? l10n.get('employee_required')
                                   : null,
                             ),
                             onTap: () {
@@ -419,7 +423,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                         // NIK Field
                         Text(
-                          'NIK (16 Digit)',
+                          l10n.get('nik_16_digit'),
                           style:
                               Theme.of(context).textTheme.labelLarge?.copyWith(
                                     fontSize: 14,
@@ -430,20 +434,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _nikController,
                           keyboardType: TextInputType.number,
                           maxLength: 16,
-                          decoration: const InputDecoration(
-                            hintText: 'Enter 16-digit NIK',
-                            prefixIcon: Icon(Icons.badge_outlined),
+                          decoration: InputDecoration(
+                            hintText: l10n.get('enter_16_digit_nik'),
+                            prefixIcon: const Icon(Icons.badge_outlined),
                             counterText: '',
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'NIK is required';
+                              return l10n.fieldRequired;
                             }
                             if (value.length != 16) {
-                              return 'NIK must be exactly 16 digits';
+                              return l10n.nikDigits;
                             }
                             if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                              return 'NIK must contain only numbers';
+                              return l10n.get('invalid_format');
                             }
                             return null;
                           },
@@ -453,7 +457,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                         // Username Field
                         Text(
-                          'Username',
+                          l10n.username,
                           style:
                               Theme.of(context).textTheme.labelLarge?.copyWith(
                                     fontSize: 14,
@@ -463,24 +467,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextFormField(
                           controller: _usernameController,
                           maxLength: 12,
-                          decoration: const InputDecoration(
-                            hintText: 'Enter your username (6-12 characters)',
-                            prefixIcon: Icon(Icons.person_outline),
+                          decoration: InputDecoration(
+                            hintText: l10n.get('enter_username_hint'),
+                            prefixIcon: const Icon(Icons.person_outline),
                             counterText: '',
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Username is required';
+                              return l10n.fieldRequired;
                             }
                             if (value.length < 6) {
-                              return 'Username minimal 6 karakter';
+                              return l10n.get('min_length').replaceAll('{0}', '6');
                             }
                             if (value.length > 12) {
-                              return 'Username maksimal 12 karakter';
+                              return l10n.get('max_length').replaceAll('{0}', '12');
                             }
                             // Only alphanumeric
                             if (!RegExp(r'^[a-zA-Z0-9]+$').hasMatch(value)) {
-                              return 'Username hanya boleh huruf dan angka';
+                              return l10n.usernameAlphanumeric;
                             }
                             return null;
                           },
@@ -510,7 +514,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Username Requirements:',
+                                      l10n.get('username_requirements'),
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
@@ -519,7 +523,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '• 6-12 characters\n• Letters and numbers only (a-z, A-Z, 0-9)',
+                                      l10n.get('username_requirements_detail'),
                                       style: TextStyle(
                                         fontSize: 11,
                                         color: isDark
@@ -539,7 +543,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                         // Password Field
                         Text(
-                          'Password',
+                          l10n.password,
                           style:
                               Theme.of(context).textTheme.labelLarge?.copyWith(
                                     fontSize: 14,
@@ -551,7 +555,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           obscureText: !_isPasswordVisible,
                           maxLength: 128,
                           decoration: InputDecoration(
-                            hintText: 'Enter your password (min. 12 characters)',
+                            hintText: l10n.get('enter_password_hint'),
                             prefixIcon: const Icon(Icons.lock_outline),
                             counterText: '',
                             suffixIcon: IconButton(
@@ -569,29 +573,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Password is required';
+                              return l10n.fieldRequired;
                             }
                             if (value.length < 12) {
-                              return 'Password minimal 12 karakter';
+                              return l10n.get('password_min_12');
                             }
                             if (value.length > 128) {
-                              return 'Password maksimal 128 karakter';
+                              return l10n.get('password_max_128');
                             }
                             // Must contain uppercase
                             if (!RegExp(r'[A-Z]').hasMatch(value)) {
-                              return 'Password harus ada huruf besar (A-Z)';
+                              return l10n.get('password_need_uppercase');
                             }
                             // Must contain lowercase
                             if (!RegExp(r'[a-z]').hasMatch(value)) {
-                              return 'Password harus ada huruf kecil (a-z)';
+                              return l10n.get('password_need_lowercase');
                             }
                             // Must contain number
                             if (!RegExp(r'\d').hasMatch(value)) {
-                              return 'Password harus ada angka (0-9)';
+                              return l10n.get('password_need_number');
                             }
                             // Must contain special character
                             if (!RegExp(r'[@$!%*?&#^()_+=\[\]{};:' "'" r'",.<>\/\\|`~-]').hasMatch(value)) {
-                              return 'Password harus ada karakter khusus (!@#\$%^&*)';
+                              return l10n.get('password_need_special');
                             }
                             // Check for common passwords
                             final commonPasswords = [
@@ -602,7 +606,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               'admin1234567',
                             ];
                             if (commonPasswords.contains(value.toLowerCase())) {
-                              return 'Password terlalu umum';
+                              return l10n.get('password_too_common');
                             }
                             return null;
                           },
@@ -632,7 +636,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Password Requirements:',
+                                      l10n.get('password_requirements_title'),
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
@@ -641,7 +645,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '• Minimum 12 characters\n• At least one uppercase letter (A-Z)\n• At least one lowercase letter (a-z)\n• At least one number (0-9)\n• At least one special character (!@#\$%^&*)',
+                                      l10n.get('password_requirements_detail'),
                                       style: TextStyle(
                                         fontSize: 11,
                                         color: isDark
@@ -661,7 +665,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                         // Confirm Password Field
                         Text(
-                          'Confirm Password',
+                          l10n.confirmPassword,
                           style:
                               Theme.of(context).textTheme.labelLarge?.copyWith(
                                     fontSize: 14,
@@ -673,7 +677,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           obscureText: !_isConfirmPasswordVisible,
                           maxLength: 128,
                           decoration: InputDecoration(
-                            hintText: 'Confirm your password',
+                            hintText: l10n.get('confirm_your_password'),
                             prefixIcon: const Icon(Icons.lock_outline),
                             counterText: '',
                             suffixIcon: IconButton(
@@ -692,10 +696,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please confirm your password';
+                              return l10n.fieldRequired;
                             }
                             if (value != _passwordController.text) {
-                              return 'Password tidak cocok';
+                              return l10n.passwordNotMatch;
                             }
                             return null;
                           },
@@ -727,7 +731,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Verifikasi Wajah Diperlukan',
+                                      l10n.livenessVerificationRequired,
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
@@ -736,7 +740,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Setelah mengisi form, Anda akan diminta verifikasi wajah untuk memastikan identitas.',
+                                      l10n.get('face_verification_info'),
                                       style: TextStyle(
                                         fontSize: 11,
                                         color: isDark
@@ -781,7 +785,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     children: [
                                       Flexible(
                                         child: Text(
-                                          'Lanjutkan ke Verifikasi Wajah',
+                                          l10n.continueToFaceVerification,
                                           style: const TextStyle(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w600,
@@ -807,7 +811,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Already have an account? ',
+                      '${l10n.alreadyHaveAccount} ',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                     TextButton(
@@ -816,7 +820,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         Navigator.pop(context);
                       },
                       child: Text(
-                        'Login',
+                        l10n.login,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,

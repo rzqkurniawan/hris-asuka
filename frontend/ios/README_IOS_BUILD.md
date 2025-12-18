@@ -134,6 +134,30 @@ flutter pub get
 cd ios && pod install
 ```
 
+### "Pods_Runner framework not found" Error (Simulator)
+Jika build simulator gagal dengan error `ld: framework 'Pods_Runner' not found`, build Pods-Runner scheme terlebih dahulu:
+
+```bash
+cd /Users/rzqkurniawan/Documents/hris-asuka/frontend/ios
+
+# Step 1: Build Pods-Runner first
+xcodebuild -workspace Runner.xcworkspace \
+  -scheme "Pods-Runner" \
+  -sdk iphonesimulator \
+  -destination "platform=iOS Simulator,id=9D842514-DD0A-41C2-A106-5C78C769904A" \
+  -configuration Debug \
+  build
+
+# Step 2: Then build Runner
+xcodebuild -workspace Runner.xcworkspace \
+  -scheme Runner \
+  -sdk iphonesimulator \
+  -destination "platform=iOS Simulator,id=9D842514-DD0A-41C2-A106-5C78C769904A" \
+  -configuration Debug \
+  CODE_SIGNING_ALLOWED=YES \
+  build
+```
+
 ### Check Device/Simulator Status
 ```bash
 # List devices

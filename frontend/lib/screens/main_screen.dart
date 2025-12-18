@@ -1,16 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
-import '../providers/theme_provider.dart';
-import '../widgets/custom_dialog.dart';
-import '../utils/page_transitions.dart';
 import 'home_page.dart';
 import 'profile_page.dart';
-import 'login_screen.dart';
 import 'mobile_attendance_screen.dart';
 import '../widgets/fab_bottom_nav_bar.dart';
+import '../widgets/settings_bottom_sheet.dart';
 import '../constants/app_colors.dart';
 
 class MainScreen extends StatefulWidget {
@@ -49,32 +44,6 @@ class _MainScreenState extends State<MainScreen> {
     Navigator.push(
       context,
       SlideUpRoute(page: const MobileAttendanceScreen()),
-    );
-  }
-
-  Future<void> _handleLogout() async {
-    HapticFeedback.lightImpact();
-
-    final shouldLogout = await CustomDialog.showConfirmation(
-          context: context,
-          title: 'Logout',
-          message: 'Are you sure you want to logout?',
-          confirmText: 'Logout',
-          cancelText: 'Cancel',
-        ) ??
-        false;
-
-    if (!shouldLogout || !mounted) return;
-
-    HapticFeedback.mediumImpact();
-    try {
-      await context.read<AuthProvider>().logout();
-    } catch (e) {
-      debugPrint('Logout error: $e');
-    }
-    Navigator.of(context).pushAndRemoveUntil(
-      FadeRoute(page: const LoginScreen()),
-      (route) => false,
     );
   }
 
@@ -129,9 +98,8 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
         actions: [
-          // Theme Toggle Button
           Container(
-            margin: EdgeInsets.only(right: 8.w),
+            margin: EdgeInsets.only(right: 16.w),
             decoration: BoxDecoration(
               color: isDarkMode
                   ? AppColors.surfaceAltDark
@@ -141,44 +109,11 @@ class _MainScreenState extends State<MainScreen> {
             child: IconButton(
               onPressed: () {
                 HapticFeedback.lightImpact();
-                context.read<ThemeProvider>().toggleTheme();
+                showSettingsBottomSheet(context);
               },
-              icon: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                transitionBuilder: (child, animation) {
-                  return RotationTransition(
-                    turns: animation,
-                    child: ScaleTransition(
-                      scale: animation,
-                      child: child,
-                    ),
-                  );
-                },
-                child: Icon(
-                  isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                  key: ValueKey(isDarkMode),
-                  color: isDarkMode
-                      ? AppColors.timeMorning
-                      : AppColors.accent,
-                  size: 22.sp,
-                ),
-              ),
-            ),
-          ),
-          // Logout Button
-          Container(
-            margin: EdgeInsets.only(right: 16.w),
-            decoration: BoxDecoration(
-              color: isDarkMode
-                  ? AppColors.surfaceAltDark
-                  : AppColors.dangerLight.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            child: IconButton(
-              onPressed: _handleLogout,
               icon: Icon(
-                Icons.logout_rounded,
-                color: AppColors.dangerLight,
+                Icons.settings_rounded,
+                color: AppColors.accent,
                 size: 22.sp,
               ),
             ),

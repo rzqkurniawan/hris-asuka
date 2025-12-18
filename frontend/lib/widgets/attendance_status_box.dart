@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
 import '../constants/app_colors.dart';
+import '../l10n/app_localizations.dart';
 import '../services/mobile_attendance_service.dart';
 import '../utils/page_transitions.dart';
 import '../screens/face_verification_screen.dart';
@@ -66,18 +67,18 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          throw Exception('Izin lokasi ditolak');
+          throw Exception('location_permission_denied');
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        throw Exception('Izin lokasi ditolak secara permanen. Silakan aktifkan di pengaturan.');
+        throw Exception('location_permission_permanent');
       }
 
       // Check if location service is enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
-        throw Exception('Layanan lokasi tidak aktif. Silakan aktifkan GPS.');
+        throw Exception('location_service_inactive');
       }
 
       // Get current position
@@ -132,9 +133,12 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
       setState(() => _isCheckingLocation = false);
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context);
+        final errorKey = e.toString().replaceAll('Exception: ', '');
+        final errorMessage = l10n.get(errorKey);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString()),
+            content: Text(errorMessage != errorKey ? errorMessage : e.toString()),
             backgroundColor: Colors.red,
           ),
         );
@@ -143,6 +147,7 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
   }
 
   void _showLocationErrorDialog(LocationValidationResult validation) {
+    final l10n = AppLocalizations.of(context);
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -153,7 +158,7 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
             Icon(Icons.location_off, color: Colors.red[400], size: 28),
             const SizedBox(width: 10),
             Text(
-              'Lokasi Tidak Valid',
+              l10n.get('location_invalid'),
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -187,7 +192,9 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Lokasi terdekat: ${validation.nearestLocation}\n(${validation.distanceToNearest?.toStringAsFixed(0)}m dari posisi Anda)',
+                        l10n.get('nearest_location_info')
+                            .replaceAll('{location}', validation.nearestLocation!)
+                            .replaceAll('{distance}', validation.distanceToNearest?.toStringAsFixed(0) ?? '0'),
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.orange[700],
@@ -203,7 +210,7 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Tutup'),
+            child: Text(l10n.close),
           ),
         ],
       ),
@@ -253,6 +260,7 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -288,7 +296,7 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          'Attendance Status',
+                          l10n.get('attendance_status'),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -300,7 +308,7 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
                       ],
                     ),
                     // Status Badge (small)
-                    _buildSmallStatusBadge(),
+                    _buildSmallStatusBadge(l10n),
                   ],
                 ),
                 const SizedBox(height: 15),
@@ -310,21 +318,25 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
                   children: [
                     Expanded(
                       child: _buildTimeItemWithButton(
-                        label: 'Check In',
+                        label: l10n.checkIn,
                         time: _todayStatus?.checkIn?.time ?? '--:--',
                         location: _todayStatus?.checkIn?.location,
                         canAction: _todayStatus?.canCheckIn ?? true,
                         onTap: () => _checkLocationAndProceed('check_in'),
+                        isCheckIn: true,
+                        l10n: l10n,
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: _buildTimeItemWithButton(
-                        label: 'Check Out',
+                        label: l10n.checkOut,
                         time: _todayStatus?.checkOut?.time ?? '--:--',
                         location: _todayStatus?.checkOut?.location,
                         canAction: _todayStatus?.canCheckOut ?? false,
                         onTap: () => _checkLocationAndProceed('check_out'),
+                        isCheckIn: false,
+                        l10n: l10n,
                       ),
                     ),
                   ],
@@ -376,6 +388,8 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
     String? location,
     required bool canAction,
     required VoidCallback onTap,
+    required bool isCheckIn,
+    required AppLocalizations l10n,
   }) {
     final hasTime = time != '--:--';
     // Color based on status: green if has time, red if no time
@@ -467,12 +481,12 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          label == 'Check In' ? Icons.login : Icons.logout,
+                          isCheckIn ? Icons.login : Icons.logout,
                           size: 16,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          label == 'Check In' ? 'IN' : 'OUT',
+                          isCheckIn ? l10n.get('in_label') : l10n.get('out_label'),
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -487,7 +501,7 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
     );
   }
 
-  Widget _buildSmallStatusBadge() {
+  Widget _buildSmallStatusBadge(AppLocalizations l10n) {
     final status = _getStatus();
     Color bgColor;
     Color textColor;
@@ -498,31 +512,31 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
       case AttendanceStatus.work:
         bgColor = Colors.green.withOpacity(0.1);
         textColor = Colors.green[700]!;
-        statusText = 'WORK';
+        statusText = l10n.get('status_work');
         icon = Icons.check_circle;
         break;
       case AttendanceStatus.late:
         bgColor = Colors.orange.withOpacity(0.1);
         textColor = Colors.orange[700]!;
-        statusText = 'LATE';
+        statusText = l10n.get('status_late');
         icon = Icons.warning;
         break;
       case AttendanceStatus.absent:
         bgColor = Colors.red.withOpacity(0.1);
         textColor = Colors.red[700]!;
-        statusText = 'ABSENT';
+        statusText = l10n.get('status_absent');
         icon = Icons.cancel;
         break;
       case AttendanceStatus.leave:
         bgColor = Colors.blue.withOpacity(0.1);
         textColor = Colors.blue[700]!;
-        statusText = 'LEAVE';
+        statusText = l10n.get('status_leave');
         icon = Icons.event_available;
         break;
       case AttendanceStatus.notYet:
         bgColor = Colors.grey.withOpacity(0.1);
         textColor = Colors.grey[600]!;
-        statusText = 'NOT YET';
+        statusText = l10n.get('status_not_yet');
         icon = Icons.schedule;
         break;
     }

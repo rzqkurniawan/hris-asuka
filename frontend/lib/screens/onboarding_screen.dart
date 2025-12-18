@@ -4,6 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_colors.dart';
+import '../l10n/app_localizations.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -16,36 +17,34 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<OnboardingData> _pages = [
-    OnboardingData(
-      icon: Icons.access_time_rounded,
-      title: 'Absensi Mudah',
-      description:
-          'Lakukan check-in dan check-out dengan mudah menggunakan GPS dan verifikasi wajah untuk keamanan maksimal.',
-      color: AppColors.accent,
-    ),
-    OnboardingData(
-      icon: Icons.location_on_rounded,
-      title: 'Lokasi Terverifikasi',
-      description:
-          'Pastikan Anda berada di lokasi yang tepat. Sistem akan memvalidasi lokasi Anda secara otomatis.',
-      color: AppColors.statusWork,
-    ),
-    OnboardingData(
-      icon: Icons.face_rounded,
-      title: 'Face Recognition',
-      description:
-          'Keamanan ekstra dengan teknologi pengenalan wajah. Pastikan yang absen adalah Anda sendiri.',
-      color: AppColors.statusLeave,
-    ),
-    OnboardingData(
-      icon: Icons.history_rounded,
-      title: 'Riwayat Lengkap',
-      description:
-          'Pantau riwayat kehadiran Anda dengan mudah. Lihat statistik dan detail absensi kapan saja.',
-      color: AppColors.statusLate,
-    ),
-  ];
+  List<OnboardingData> _getPages(AppLocalizations l10n) {
+    return [
+      OnboardingData(
+        icon: Icons.access_time_rounded,
+        title: l10n.get('onboarding_1_title'),
+        description: l10n.get('onboarding_1_desc'),
+        color: AppColors.accent,
+      ),
+      OnboardingData(
+        icon: Icons.location_on_rounded,
+        title: l10n.get('onboarding_2_title'),
+        description: l10n.get('onboarding_2_desc'),
+        color: AppColors.statusWork,
+      ),
+      OnboardingData(
+        icon: Icons.face_rounded,
+        title: l10n.get('onboarding_3_title'),
+        description: l10n.get('onboarding_3_desc'),
+        color: AppColors.statusLeave,
+      ),
+      OnboardingData(
+        icon: Icons.history_rounded,
+        title: l10n.get('onboarding_4_title'),
+        description: l10n.get('onboarding_4_desc'),
+        color: AppColors.statusLate,
+      ),
+    ];
+  }
 
   @override
   void dispose() {
@@ -53,8 +52,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
+  static const int _totalPages = 4;
+
   void _nextPage() {
-    if (_currentPage < _pages.length - 1) {
+    if (_currentPage < _totalPages - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
@@ -80,6 +81,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context);
+    final pages = _getPages(l10n);
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.surfaceDark : AppColors.surfaceLight,
@@ -95,7 +98,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   TextButton(
                     onPressed: _skipOnboarding,
                     child: Text(
-                      'Lewati',
+                      l10n.skip,
                       style: TextStyle(
                         fontSize: 14.sp,
                         color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight,
@@ -114,9 +117,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   HapticFeedback.selectionClick();
                   setState(() => _currentPage = index);
                 },
-                itemCount: _pages.length,
+                itemCount: pages.length,
                 itemBuilder: (context, index) {
-                  return _buildPage(_pages[index], isDark, index);
+                  return _buildPage(pages[index], isDark, index);
                 },
               ),
             ),
@@ -130,8 +133,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(
-                      _pages.length,
-                      (index) => _buildIndicator(index, isDark),
+                      pages.length,
+                      (index) => _buildIndicator(index, isDark, pages),
                     ),
                   ),
                   SizedBox(height: 32.h),
@@ -146,7 +149,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         _nextPage();
                       },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _pages[_currentPage].color,
+                        backgroundColor: pages[_currentPage].color,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16.r),
@@ -157,9 +160,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            _currentPage == _pages.length - 1
-                                ? 'Mulai Sekarang'
-                                : 'Lanjutkan',
+                            _currentPage == pages.length - 1
+                                ? l10n.get('start_now')
+                                : l10n.get('continue_button'),
                             style: TextStyle(
                               fontSize: 16.sp,
                               fontWeight: FontWeight.w600,
@@ -167,7 +170,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                           SizedBox(width: 8.w),
                           Icon(
-                            _currentPage == _pages.length - 1
+                            _currentPage == pages.length - 1
                                 ? Icons.check_rounded
                                 : Icons.arrow_forward_rounded,
                             size: 20.sp,
@@ -260,7 +263,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _buildIndicator(int index, bool isDark) {
+  Widget _buildIndicator(int index, bool isDark, List<OnboardingData> pages) {
     final isActive = _currentPage == index;
 
     return AnimatedContainer(
@@ -270,7 +273,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       height: 8.h,
       decoration: BoxDecoration(
         color: isActive
-            ? _pages[_currentPage].color
+            ? pages[_currentPage].color
             : (isDark ? AppColors.borderDark : AppColors.borderLight),
         borderRadius: BorderRadius.circular(4.r),
       ),

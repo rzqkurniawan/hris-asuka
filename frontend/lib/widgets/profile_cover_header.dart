@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../constants/app_colors.dart';
+import '../l10n/app_localizations.dart';
 import 'employee_avatar.dart';
 
 class ProfileCoverHeader extends StatelessWidget {
@@ -14,6 +15,7 @@ class ProfileCoverHeader extends StatelessWidget {
   final String workingPeriod;
   final String investmentAmount;
   final bool isDarkMode;
+  final VoidCallback? onSettingsTap;
 
   const ProfileCoverHeader({
     super.key,
@@ -26,6 +28,7 @@ class ProfileCoverHeader extends StatelessWidget {
     required this.workingPeriod,
     required this.investmentAmount,
     required this.isDarkMode,
+    this.onSettingsTap,
   });
 
   @override
@@ -105,6 +108,31 @@ class ProfileCoverHeader extends StatelessWidget {
                       ),
                     ),
                   ),
+                  // Settings Icon
+                  if (onSettingsTap != null)
+                    Positioned(
+                      top: 12.h,
+                      right: 12.w,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: onSettingsTap,
+                          borderRadius: BorderRadius.circular(12.r),
+                          child: Container(
+                            padding: EdgeInsets.all(10.w),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12.r),
+                            ),
+                            child: Icon(
+                              Icons.settings_rounded,
+                              color: Colors.white,
+                              size: 22.sp,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -176,34 +204,39 @@ class ProfileCoverHeader extends StatelessWidget {
                         width: 1,
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        // Working Period
-                        Expanded(
-                          child: _buildStatItem(
-                            icon: Icons.work_history_rounded,
-                            label: 'Masa Kerja',
-                            value: workingPeriod,
-                            color: const Color(0xFF10B981),
-                          ),
-                        ),
-                        Container(
-                          width: 1,
-                          height: 50.h,
-                          color: isDarkMode
-                              ? const Color(0xFF334155)
-                              : const Color(0xFFE2E8F0),
-                        ),
-                        // Investment
-                        Expanded(
-                          child: _buildStatItem(
-                            icon: Icons.savings_rounded,
-                            label: 'Investasi',
-                            value: investmentAmount,
-                            color: const Color(0xFFF59E0B),
-                          ),
-                        ),
-                      ],
+                    child: Builder(
+                      builder: (context) {
+                        final l10n = AppLocalizations.of(context);
+                        return Row(
+                          children: [
+                            // Working Period
+                            Expanded(
+                              child: _buildStatItem(
+                                icon: Icons.work_history_rounded,
+                                label: l10n.workingPeriod,
+                                value: workingPeriod,
+                                color: const Color(0xFF10B981),
+                              ),
+                            ),
+                            Container(
+                              width: 1,
+                              height: 50.h,
+                              color: isDarkMode
+                                  ? const Color(0xFF334155)
+                                  : const Color(0xFFE2E8F0),
+                            ),
+                            // Investment
+                            Expanded(
+                              child: _buildStatItem(
+                                icon: Icons.savings_rounded,
+                                label: l10n.investment,
+                                value: investmentAmount,
+                                color: const Color(0xFFF59E0B),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                 ],
