@@ -6,9 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceLocation;
 use App\Models\AttendanceRecord;
 use App\Models\Employee;
+use App\Services\FaceComparisonService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
@@ -260,21 +262,6 @@ class MobileAttendanceController extends Controller
                 ], 400);
             }
 
-            // Validate face confidence (minimum 80%)
-            $faceConfidence = $request->face_confidence;
-            $minConfidence = 80.0;
-
-            if ($faceConfidence < $minConfidence) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Verifikasi wajah gagal. Tingkat kecocokan terlalu rendah. Absensi ditolak.',
-                    'data' => [
-                        'face_confidence' => $faceConfidence,
-                        'min_required' => $minConfidence,
-                    ],
-                ], 400);
-            }
-
             // Validate liveness detection - REQUIRED for anti-spoofing
             $livenessVerified = $request->boolean('liveness_verified', false);
             if (!$livenessVerified) {
@@ -283,6 +270,75 @@ class MobileAttendanceController extends Controller
                     'message' => 'Verifikasi liveness gagal. Pastikan Anda mengedipkan mata dan menggerakkan kepala saat verifikasi. Absensi ditolak.',
                 ], 400);
             }
+
+            // Get employee data for face comparison
+            $employee = DB::connection('c3ais')
+                ->table('ki_employee')
+                ->where('employee_id', $employeeId)
+                ->select('identity_file_name', 'fullname')
+                ->first();
+
+            if (!$employee || !$employee->identity_file_name) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Foto karyawan tidak tersedia untuk verifikasi wajah. Hubungi HRD.',
+                ], 422);
+            }
+
+            // Perform server-side face comparison with employee's stored photo
+            $faceComparisonService = new FaceComparisonService();
+            $employeePhotoPath = storage_path("app/photo-cache/{$employee->identity_file_name}");
+
+            // Check if photo exists
+            if (!file_exists($employeePhotoPath)) {
+                Log::warning('Employee photo not found for attendance face comparison', [
+                    'employee_id' => $employeeId,
+                    'identity_file_name' => $employee->identity_file_name,
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Foto karyawan tidak ditemukan untuk verifikasi wajah. Hubungi HRD.',
+                ], 422);
+            }
+
+            // Compare faces
+            $faceComparisonResult = $faceComparisonService->compareFaces(
+                $employeePhotoPath,
+                $request->face_image
+            );
+
+            Log::info('Face comparison result for attendance', [
+                'employee_id' => $employeeId,
+                'check_type' => $checkType,
+                'result' => $faceComparisonResult,
+            ]);
+
+            // Check if face comparison was successful
+            if (!$faceComparisonResult['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $faceComparisonResult['message'],
+                    'data' => [
+                        'face_comparison_error' => true,
+                    ],
+                ], 400);
+            }
+
+            // Check if faces match (minimum 75% similarity required)
+            if (!$faceComparisonResult['match']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Wajah tidak cocok dengan foto karyawan terdaftar. Absensi ditolak.',
+                    'data' => [
+                        'face_confidence' => $faceComparisonResult['confidence'],
+                        'min_required' => $faceComparisonService->getMinConfidence(),
+                    ],
+                ], 400);
+            }
+
+            // Use server-side confidence instead of client-side
+            $faceConfidence = $faceComparisonResult['confidence'];
 
             // Save face image
             $faceImagePath = $this->saveFaceImage($request->face_image, $user->id, $checkType);
