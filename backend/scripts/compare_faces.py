@@ -156,9 +156,10 @@ def main():
         confidence = float(round(confidence, 2))
         face_distance_val = float(round(face_distance, 4))
 
-        # Determine if it's a match (using 75% as threshold for security)
-        # This corresponds to roughly distance < 0.45
-        is_match = bool(confidence >= 75.0)
+        # Determine if it's a match (using 60% as threshold)
+        # Lowered from 75% to accommodate different lighting/angles
+        # This still rejects clearly different faces while allowing some variance
+        is_match = bool(confidence >= 60.0)
 
         print(json.dumps({
             'success': True,

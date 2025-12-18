@@ -85,6 +85,55 @@ class MobileAttendanceService {
     }
   }
 
+  /// Compare face with employee's stored photo (preview before submit)
+  Future<FaceComparisonResult> compareFace({
+    required String faceImageBase64,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        '${ApiConfig.mobileAttendance}/compare-face',
+        data: {
+          'face_image': faceImageBase64,
+        },
+      );
+
+      if (response.data == null) {
+        return FaceComparisonResult(
+          success: false,
+          match: false,
+          confidence: 0,
+          message: 'Empty response from server',
+        );
+      }
+
+      if (response.data is Map) {
+        return FaceComparisonResult.fromJson(
+            Map<String, dynamic>.from(response.data as Map));
+      } else {
+        return FaceComparisonResult(
+          success: false,
+          match: false,
+          confidence: 0,
+          message: 'Invalid response format',
+        );
+      }
+    } on ApiException catch (e) {
+      return FaceComparisonResult(
+        success: false,
+        match: false,
+        confidence: 0,
+        message: e.message,
+      );
+    } catch (e) {
+      return FaceComparisonResult(
+        success: false,
+        match: false,
+        confidence: 0,
+        message: 'Gagal memverifikasi wajah: ${e.toString()}',
+      );
+    }
+  }
+
   /// Submit attendance (check-in or check-out)
   Future<AttendanceSubmitResult> submitAttendance({
     required String checkType, // 'check_in' or 'check_out'
@@ -359,6 +408,43 @@ class EmployeeAvatarResponse {
     return EmployeeAvatarResponse(
       avatarUrl: json['avatar_url'] as String,
       avatarPath: json['avatar_path'] as String,
+    );
+  }
+}
+
+/// Face Comparison Result (server-side comparison)
+class FaceComparisonResult {
+  final bool success;
+  final bool match;
+  final double confidence;
+  final String message;
+
+  FaceComparisonResult({
+    required this.success,
+    required this.match,
+    required this.confidence,
+    required this.message,
+  });
+
+  factory FaceComparisonResult.fromJson(Map<String, dynamic> json) {
+    // Parse confidence safely
+    double confidence = 0;
+    if (json['confidence'] != null) {
+      final confValue = json['confidence'];
+      if (confValue is double) {
+        confidence = confValue;
+      } else if (confValue is int) {
+        confidence = confValue.toDouble();
+      } else if (confValue is String) {
+        confidence = double.tryParse(confValue) ?? 0;
+      }
+    }
+
+    return FaceComparisonResult(
+      success: json['success'] == true,
+      match: json['match'] == true,
+      confidence: confidence,
+      message: json['message']?.toString() ?? 'Unknown response',
     );
   }
 }

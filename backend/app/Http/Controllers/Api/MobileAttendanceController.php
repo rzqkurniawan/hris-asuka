@@ -275,10 +275,10 @@ class MobileAttendanceController extends Controller
             $employee = DB::connection('c3ais')
                 ->table('ki_employee')
                 ->where('employee_id', $employeeId)
-                ->select('identity_file_name', 'fullname')
+                ->select('employee_file_name', 'fullname')
                 ->first();
 
-            if (!$employee || !$employee->identity_file_name) {
+            if (!$employee || !$employee->employee_file_name) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Foto karyawan tidak tersedia untuk verifikasi wajah. Hubungi HRD.',
@@ -287,13 +287,13 @@ class MobileAttendanceController extends Controller
 
             // Perform server-side face comparison with employee's stored photo
             $faceComparisonService = new FaceComparisonService();
-            $employeePhotoPath = storage_path("app/photo-cache/{$employee->identity_file_name}");
+            $employeePhotoPath = storage_path("app/photo-cache/{$employee->employee_file_name}");
 
             // Check if photo exists
             if (!file_exists($employeePhotoPath)) {
                 Log::warning('Employee photo not found for attendance face comparison', [
                     'employee_id' => $employeeId,
-                    'identity_file_name' => $employee->identity_file_name,
+                    'employee_file_name' => $employee->employee_file_name,
                 ]);
 
                 return response()->json([
@@ -497,6 +497,90 @@ class MobileAttendanceController extends Controller
                 'success' => false,
                 'message' => 'Failed to retrieve attendance history',
                 'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Compare face with employee's stored photo (without submitting attendance)
+     * Used for real-time face verification before confirmation
+     */
+    public function compareFace(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'face_image' => 'required|string',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $user = Auth::user();
+            $employeeId = $user->employee_id;
+
+            // Get employee data for face comparison
+            $employee = DB::connection('c3ais')
+                ->table('ki_employee')
+                ->where('employee_id', $employeeId)
+                ->select('employee_file_name', 'fullname')
+                ->first();
+
+            if (!$employee || !$employee->employee_file_name) {
+                return response()->json([
+                    'success' => false,
+                    'match' => false,
+                    'confidence' => 0,
+                    'message' => 'Foto karyawan tidak tersedia untuk verifikasi wajah. Hubungi HRD.',
+                ], 422);
+            }
+
+            // Get employee photo path
+            $employeePhotoPath = storage_path("app/photo-cache/{$employee->employee_file_name}");
+
+            // Check if photo exists
+            if (!file_exists($employeePhotoPath)) {
+                return response()->json([
+                    'success' => false,
+                    'match' => false,
+                    'confidence' => 0,
+                    'message' => 'Foto karyawan tidak ditemukan untuk verifikasi wajah. Hubungi HRD.',
+                ], 422);
+            }
+
+            // Perform face comparison
+            $faceComparisonService = new FaceComparisonService();
+            $result = $faceComparisonService->compareFaces(
+                $employeePhotoPath,
+                $request->face_image
+            );
+
+            Log::info('Face comparison (preview) for employee', [
+                'employee_id' => $employeeId,
+                'result' => $result,
+            ]);
+
+            return response()->json([
+                'success' => $result['success'],
+                'match' => $result['match'] ?? false,
+                'confidence' => $result['confidence'] ?? 0,
+                'message' => $result['message'] ?? 'Face comparison completed',
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Face comparison error', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'match' => false,
+                'confidence' => 0,
+                'message' => 'Gagal memverifikasi wajah: ' . $e->getMessage(),
             ], 500);
         }
     }

@@ -55,6 +55,7 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
   bool _isProcessing = false;
   bool _isSubmitting = false;
   bool _faceDetected = false;
+  bool _isComparingFace = false; // Server-side face comparison in progress
 
   FaceDetector? _faceDetector;
   String? _avatarUrl;
@@ -63,6 +64,9 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
 
   XFile? _capturedImage;
   String? _capturedImageBase64;
+
+  // Server-side face comparison result
+  FaceComparisonResult? _serverFaceResult;
 
   // ===== LIVENESS DETECTION STATE =====
   bool _isLivenessMode = false;
@@ -531,6 +535,9 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
       _currentChallengeCompleted = false;
       _eyesWereClosed = false;
       _baselineHeadAngleY = null;
+      // Reset server face comparison result
+      _serverFaceResult = null;
+      _isComparingFace = false;
     });
   }
 
@@ -1111,12 +1118,6 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
         return;
       }
 
-      final face = faces.first;
-      double confidence = _calculateFaceConfidence(face);
-
-      // Boost confidence for successful liveness
-      confidence = (confidence + 5).clamp(0.0, 100.0);
-
       final bytes = await imageFile.readAsBytes();
       final base64Image = base64Encode(bytes);
 
@@ -1124,14 +1125,58 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
         _capturedImage = imageFile;
         _capturedImageBase64 = base64Image;
         _faceDetected = true;
-        _faceConfidence = confidence;
         _isProcessing = false;
+        _isComparingFace = true; // Start server comparison
       });
+
+      // Perform server-side face comparison
+      await _compareFaceWithServer(base64Image);
+
     } catch (e) {
       setState(() {
         _isProcessing = false;
         _livenessVerified = false;
         _errorMessage = 'Gagal mengambil foto: ${e.toString()}';
+      });
+    }
+  }
+
+  /// Compare captured face with employee's stored photo on server
+  Future<void> _compareFaceWithServer(String base64Image) async {
+    try {
+      final result = await _attendanceService.compareFace(
+        faceImageBase64: base64Image,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _serverFaceResult = result;
+        _faceConfidence = result.confidence;
+        _isComparingFace = false;
+      });
+
+      // Show feedback based on result
+      if (!result.success) {
+        setState(() {
+          _errorMessage = result.message;
+        });
+      } else if (!result.match) {
+        // Face doesn't match but comparison was successful
+        if (mounted) {
+          HapticFeedback.heavyImpact();
+        }
+      } else {
+        // Face matches!
+        if (mounted) {
+          HapticFeedback.mediumImpact();
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isComparingFace = false;
+        _errorMessage = 'Gagal memverifikasi wajah: ${e.toString()}';
       });
     }
   }
@@ -1583,50 +1628,83 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
                 ),
               ),
 
-            // Face Detection Status (after capture)
+            // Face Detection Status (after capture) - Shows server-side comparison result
             if (_capturedImage != null)
               Positioned(
                 bottom: 16,
                 left: 16,
                 right: 16,
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: _faceDetected && _livenessVerified
-                        ? Colors.green.withOpacity(0.9)
-                        : _faceDetected
-                            ? Colors.orange.withOpacity(0.9)
-                            : Colors.red.withOpacity(0.9),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        _faceDetected && _livenessVerified
-                            ? Icons.verified_user
-                            : _faceDetected
-                                ? Icons.face
-                                : Icons.face_retouching_off,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                          _faceDetected && _livenessVerified
-                              ? 'Wajah Terverifikasi (${_faceConfidence.toStringAsFixed(0)}%)'
-                              : _faceDetected
-                                  ? 'Wajah Terdeteksi (${_faceConfidence.toStringAsFixed(0)}%)'
-                                  : 'Wajah Tidak Terdeteksi',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
+                child: _isComparingFace
+                    // Loading state - comparing with server
+                    ? Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Flexible(
+                              child: Text(
+                                'Memverifikasi dengan foto karyawan...',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    // Server comparison result
+                    : Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: _serverFaceResult?.match == true
+                              ? Colors.green.withOpacity(0.9)
+                              : _serverFaceResult != null
+                                  ? Colors.red.withOpacity(0.9)
+                                  : Colors.orange.withOpacity(0.9),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _serverFaceResult?.match == true
+                                  ? Icons.verified_user
+                                  : _serverFaceResult != null
+                                      ? Icons.cancel
+                                      : Icons.face,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                _serverFaceResult?.match == true
+                                    ? 'Wajah Cocok! (${_faceConfidence.toStringAsFixed(1)}%)'
+                                    : _serverFaceResult != null
+                                        ? 'Wajah Tidak Cocok (${_faceConfidence.toStringAsFixed(1)}%)'
+                                        : 'Menunggu verifikasi...',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
               ),
 
             // Processing Indicator
@@ -1819,37 +1897,53 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
     // Retake and Submit Buttons (after capture)
     return Column(
       children: [
-        // Liveness status indicator
-        if (_livenessVerified)
+        // Server face verification status indicator
+        if (_serverFaceResult != null)
           Container(
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
+              color: _serverFaceResult!.match
+                  ? Colors.green.withOpacity(0.1)
+                  : Colors.red.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.green.withOpacity(0.3)),
+              border: Border.all(
+                color: _serverFaceResult!.match
+                    ? Colors.green.withOpacity(0.3)
+                    : Colors.red.withOpacity(0.3),
+              ),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.verified, color: Colors.green, size: 20),
+                Icon(
+                  _serverFaceResult!.match ? Icons.verified_user : Icons.cancel,
+                  color: _serverFaceResult!.match ? Colors.green : Colors.red,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
-                Text(
-                  'Liveness Terverifikasi',
-                  style: TextStyle(
-                    color: Colors.green[700],
-                    fontWeight: FontWeight.w600,
+                Expanded(
+                  child: Text(
+                    _serverFaceResult!.match
+                        ? 'Wajah Cocok dengan Data Karyawan (${_serverFaceResult!.confidence.toStringAsFixed(1)}%)'
+                        : 'Wajah Tidak Cocok! (${_serverFaceResult!.confidence.toStringAsFixed(1)}%) - Foto ulang dengan wajah Anda',
+                    style: TextStyle(
+                      color: _serverFaceResult!.match ? Colors.green[700] : Colors.red[700],
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ],
             ),
           ),
 
-        // Submit Button
+        // Submit Button - Only enabled if server says face matches
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: _isSubmitting || _faceConfidence < 80 || !_livenessVerified
+            onPressed: _isSubmitting || _isComparingFace || !_livenessVerified || _serverFaceResult?.match != true
                 ? null
                 : _submitAttendance,
             icon: _isSubmitting

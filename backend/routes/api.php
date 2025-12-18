@@ -123,6 +123,7 @@ Route::middleware('auth:api')->group(function () {
         Route::get('/today-status', [MobileAttendanceController::class, 'getTodayStatus']);
         Route::post('/validate-location', [MobileAttendanceController::class, 'validateLocation']);
         Route::get('/employee-avatar', [MobileAttendanceController::class, 'getEmployeeAvatar']);
+        Route::post('/compare-face', [MobileAttendanceController::class, 'compareFace']);
         Route::post('/submit', [MobileAttendanceController::class, 'submitAttendance']);
         Route::get('/history', [MobileAttendanceController::class, 'getHistory']);
     });

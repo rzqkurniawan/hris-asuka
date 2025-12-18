@@ -151,6 +151,6 @@ class FaceComparisonService
      */
     public function getMinConfidence(): float
     {
-        return 75.0; // 75% minimum similarity required
+        return 60.0; // 60% minimum similarity required (lowered for lighting/angle variance)
     }
 }
