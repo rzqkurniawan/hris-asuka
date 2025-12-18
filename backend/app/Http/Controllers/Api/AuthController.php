@@ -22,34 +22,37 @@ class AuthController extends Controller
     public function getEmployees(Request $request)
     {
         try {
+            // Security: Require minimum 3 characters search to prevent data enumeration
+            if (!$request->has('search') || strlen(trim($request->search)) < 3) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'employees' => [],
+                        'total' => 0,
+                        'message' => 'Please enter at least 3 characters to search',
+                    ],
+                ]);
+            }
+
             // Get users who already have accounts
             $usersWithAccounts = User::pluck('employee_id')
                 ->filter()
                 ->toArray();
 
-            $query = \DB::connection('c3ais')
+            $search = trim($request->search);
+
+            // Security: Only return minimal data needed (employee_id and fullname)
+            // employee_number removed from public endpoint to prevent data leakage
+            $employees = \DB::connection('c3ais')
                 ->table('ki_employee')
-                ->select('employee_id', 'employee_number', 'fullname')
+                ->select('employee_id', 'fullname')
                 ->where('working_status', 'Active')
-                ->whereNotIn('employee_id', $usersWithAccounts);
-
-            // Apply search if provided
-            if ($request->has('search') && strlen($request->search) > 2) {
-                $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('fullname', 'like', "%{$search}%")
-                        ->orWhere('employee_number', 'like', "%{$search}%");
-                });
-            } else {
-                // If no search, limit to 0 or small number to prevent loading all
-                // But for UX, maybe return empty or top 10?
-                // Let's return top 20 if no search, or empty if we want to force search
-                // User request implied "load employee when register lama", so better to not load all.
-                $query->limit(20);
-            }
-
-            $employees = $query->orderBy('fullname', 'asc')
-                ->limit(50) // Hard limit
+                ->whereNotIn('employee_id', $usersWithAccounts)
+                ->where(function ($q) use ($search) {
+                    $q->where('fullname', 'like', "%{$search}%");
+                })
+                ->orderBy('fullname', 'asc')
+                ->limit(20) // Hard limit for security
                 ->get();
 
             return response()->json([
@@ -63,7 +66,6 @@ class AuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch employees',
-                'error' => $e->getMessage(),
             ], 500);
         }
     }
@@ -88,18 +90,18 @@ class AuthController extends Controller
             'password' => [
                 'required',
                 'string',
-                'min:8',
-                'max:12',
+                'min:12',
+                'max:128',
                 'confirmed',
-                'regex:/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]+$/', // Must contain letters and numbers
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+=\[\]{};:\'",.<>\/\\|`~-]).+$/', // Uppercase, lowercase, number, special char
             ],
         ], [
             'username.regex' => 'Username hanya boleh mengandung huruf dan angka',
             'username.min' => 'Username minimal 6 karakter',
             'username.max' => 'Username maksimal 12 karakter',
-            'password.regex' => 'Password harus mengandung kombinasi huruf dan angka',
-            'password.min' => 'Password minimal 8 karakter',
-            'password.max' => 'Password maksimal 12 karakter',
+            'password.regex' => 'Password harus mengandung huruf besar, huruf kecil, angka, dan karakter khusus (!@#$%^&*)',
+            'password.min' => 'Password minimal 12 karakter',
+            'password.max' => 'Password maksimal 128 karakter',
         ]);
 
         if ($validator->fails()) {
@@ -111,20 +113,28 @@ class AuthController extends Controller
         }
 
         try {
-            // Check for common weak passwords
+            // Check for common weak passwords (updated for 12+ char policy)
             $commonPasswords = [
-                '12345678',
-                '123456789',
-                '1234567890',
-                'password',
-                'password1',
-                'password123',
-                'qwerty123',
-                'abc12345',
-                'admin123',
-                '87654321',
-                'asdf1234',
-                'qwer1234',
+                '123456789012',
+                '1234567890123',
+                '12345678901234',
+                'password1234',
+                'password12345',
+                'password123456',
+                'qwerty123456',
+                'qwertyuiop12',
+                'admin1234567',
+                'administrator1',
+                'letmein12345',
+                'welcome12345',
+                'iloveyou1234',
+                'sunshine1234',
+                'princess1234',
+                'football1234',
+                'abc123456789',
+                'monkey123456',
+                'shadow123456',
+                'master123456',
             ];
 
             $lowercasePassword = strtolower($request->password);

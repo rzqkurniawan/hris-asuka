@@ -1,6 +1,6 @@
 class ApiConfig {
-  // Base URL - Laravel API server
-  static const String baseUrl = 'http://112.109.16.46/api';
+  // Base URL - Laravel API server (HTTPS)
+  static const String baseUrl = 'https://hris.asukaindonesia.co.id/api';
 
   // API Endpoints
   static const String healthCheck = '/health';

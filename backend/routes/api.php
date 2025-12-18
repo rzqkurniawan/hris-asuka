@@ -27,11 +27,22 @@ Route::get('/health', function () {
     ]);
 });
 
-// Public routes (no authentication required)
+// Public routes (no authentication required) - with rate limiting for security
 Route::prefix('auth')->group(function () {
-    Route::get('/employees', [AuthController::class, 'getEmployees']); // Get available employees for registration
-    Route::post('/register', [AuthController::class, 'register']);
-    Route::post('/login', [AuthController::class, 'login']);
+    // Rate limit: 10 requests per minute for employee list
+    Route::middleware('throttle:10,1')->group(function () {
+        Route::get('/employees', [AuthController::class, 'getEmployees']);
+    });
+
+    // Rate limit: 5 requests per minute for registration (prevent spam)
+    Route::middleware('throttle:5,1')->group(function () {
+        Route::post('/register', [AuthController::class, 'register']);
+    });
+
+    // Rate limit: 5 requests per minute for login (prevent brute force)
+    Route::middleware('throttle:5,1')->group(function () {
+        Route::post('/login', [AuthController::class, 'login']);
+    });
 });
 
 // Protected routes (require authentication)

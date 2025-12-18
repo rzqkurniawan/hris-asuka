@@ -5,6 +5,7 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'api_client.dart';
 import '../config/api_config.dart';
 import '../models/user_model.dart';
+import '../utils/debug_logger.dart';
 
 class AuthService {
   static final AuthService _instance = AuthService._internal();
@@ -35,7 +36,7 @@ class AuthService {
         deviceType = 'ios';
       }
     } catch (e) {
-      print('Error getting device info: $e');
+      DebugLogger.error('Error getting device info', error: e, tag: 'AuthService');
     }
 
     return {
@@ -53,8 +54,7 @@ class AuthService {
         queryParameters: query != null ? {'search': query} : null,
       );
 
-      print('=== EMPLOYEES API RESPONSE ===');
-      print('Response type: ${response.data.runtimeType}');
+      DebugLogger.log('Employees API response received', tag: 'AuthService');
 
       if (response.data is! Map) {
         throw ApiException(
@@ -73,7 +73,6 @@ class AuthService {
 
       // Get data field
       final data = responseMap['data'];
-      print('Data field type: ${data.runtimeType}');
 
       if (data is! Map) {
         throw ApiException(
@@ -84,7 +83,6 @@ class AuthService {
       // Get employees array from data
       final dataMap = data as Map<String, dynamic>;
       final employeesData = dataMap['employees'];
-      print('Employees field type: ${employeesData.runtimeType}');
 
       if (employeesData is! List) {
         throw ApiException(
@@ -100,10 +98,10 @@ class AuthService {
         return e as Map<String, dynamic>;
       }).toList();
 
-      print('Successfully parsed ${employees.length} employees');
+      DebugLogger.log('Parsed ${employees.length} employees', tag: 'AuthService');
       return employees;
     } catch (e) {
-      print('ERROR in getAvailableEmployees: $e');
+      DebugLogger.error('Error in getAvailableEmployees', error: e, tag: 'AuthService');
       rethrow;
     }
   }
@@ -163,9 +161,7 @@ class AuthService {
       if (response.data['success']) {
         final data = response.data['data'];
 
-        // Debug: Print raw user data from API
-        print('📥 Login API response user data:');
-        print(jsonEncode(data['user']));
+        DebugLogger.log('Login successful', tag: 'AuthService');
 
         // Save token
         final token = data['token']['access_token'];
@@ -182,7 +178,6 @@ class AuthService {
         );
 
         final user = UserModel.fromJson(data['user']);
-        print('👤 Parsed UserModel: id=${user.id}, employeeId=${user.employeeId}, employeeNumber=${user.employeeNumber}, username=${user.username}');
 
         return user;
       } else {
@@ -229,7 +224,7 @@ class AuthService {
         return UserModel.fromJson(userData);
       }
     } catch (e) {
-      print('Error getting cached user: $e');
+      DebugLogger.error('Error getting cached user', error: e, tag: 'AuthService');
     }
     return null;
   }
@@ -239,7 +234,7 @@ class AuthService {
     try {
       await _apiClient.post(ApiConfig.logout);
     } catch (e) {
-      print('Logout API error: $e');
+      DebugLogger.error('Logout API error', error: e, tag: 'AuthService');
     } finally {
       // Clear stored data
       await _storage.delete(key: ApiConfig.tokenKey);
@@ -270,7 +265,7 @@ class AuthService {
         return true;
       }
     } catch (e) {
-      print('Refresh token error: $e');
+      DebugLogger.error('Refresh token error', error: e, tag: 'AuthService');
     }
     return false;
   }
@@ -281,7 +276,7 @@ class AuthService {
       final response = await _apiClient.get(ApiConfig.healthCheck);
       return response.data['success'] == true;
     } catch (e) {
-      print('Health check error: $e');
+      DebugLogger.error('Health check error', error: e, tag: 'AuthService');
       return false;
     }
   }
