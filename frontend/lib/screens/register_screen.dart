@@ -436,6 +436,55 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           },
                         ),
 
+                        // Username Requirements Info
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.blue.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: Colors.blue[700],
+                                size: 18,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Username Requirements:',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.blue[700],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '• 6-12 characters\n• Letters and numbers only (a-z, A-Z, 0-9)',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: isDark
+                                            ? AppColors.textSecondaryDark
+                                            : AppColors.textSecondaryLight,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
                         const SizedBox(height: 20),
 
                         // Password Field
@@ -450,9 +499,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextFormField(
                           controller: _passwordController,
                           obscureText: !_isPasswordVisible,
-                          maxLength: 12,
+                          maxLength: 128,
                           decoration: InputDecoration(
-                            hintText: 'Enter your password (8-12 characters)',
+                            hintText: 'Enter your password (min. 12 characters)',
                             prefixIcon: const Icon(Icons.lock_outline),
                             counterText: '',
                             suffixIcon: IconButton(
@@ -472,38 +521,90 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             if (value == null || value.isEmpty) {
                               return 'Password is required';
                             }
-                            if (value.length < 8) {
-                              return 'Password minimal 8 karakter';
+                            if (value.length < 12) {
+                              return 'Password minimal 12 karakter';
                             }
-                            if (value.length > 12) {
-                              return 'Password maksimal 12 karakter';
+                            if (value.length > 128) {
+                              return 'Password maksimal 128 karakter';
                             }
-                            // Must contain both letters and numbers
-                            if (!RegExp(r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]+$')
-                                .hasMatch(value)) {
-                              return 'Password harus ada huruf dan angka';
+                            // Must contain uppercase
+                            if (!RegExp(r'[A-Z]').hasMatch(value)) {
+                              return 'Password harus ada huruf besar (A-Z)';
+                            }
+                            // Must contain lowercase
+                            if (!RegExp(r'[a-z]').hasMatch(value)) {
+                              return 'Password harus ada huruf kecil (a-z)';
+                            }
+                            // Must contain number
+                            if (!RegExp(r'\d').hasMatch(value)) {
+                              return 'Password harus ada angka (0-9)';
+                            }
+                            // Must contain special character
+                            if (!RegExp(r'[@$!%*?&#^()_+=\[\]{};:' "'" r'",.<>\/\\|`~-]').hasMatch(value)) {
+                              return 'Password harus ada karakter khusus (!@#\$%^&*)';
                             }
                             // Check for common passwords
                             final commonPasswords = [
-                              '12345678',
-                              '123456789',
-                              '1234567890',
-                              'password',
-                              'password1',
-                              'password123',
-                              'qwerty123',
-                              'abc12345',
-                              'admin123',
-                              '87654321',
-                              'asdf1234',
-                              'qwer1234',
+                              '123456789012',
+                              'password1234',
+                              'password12345',
+                              'qwerty123456',
+                              'admin1234567',
                             ];
-                            if (commonPasswords
-                                .contains(value.toLowerCase())) {
+                            if (commonPasswords.contains(value.toLowerCase())) {
                               return 'Password terlalu umum';
                             }
                             return null;
                           },
+                        ),
+
+                        // Password Requirements Info
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: Colors.orange.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.security,
+                                color: Colors.orange[700],
+                                size: 18,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Password Requirements:',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.orange[700],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '• Minimum 12 characters\n• At least one uppercase letter (A-Z)\n• At least one lowercase letter (a-z)\n• At least one number (0-9)\n• At least one special character (!@#\$%^&*)',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: isDark
+                                            ? AppColors.textSecondaryDark
+                                            : AppColors.textSecondaryLight,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
 
                         const SizedBox(height: 20),
@@ -520,7 +621,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextFormField(
                           controller: _confirmPasswordController,
                           obscureText: !_isConfirmPasswordVisible,
-                          maxLength: 12,
+                          maxLength: 128,
                           decoration: InputDecoration(
                             hintText: 'Confirm your password',
                             prefixIcon: const Icon(Icons.lock_outline),
