@@ -307,4 +307,64 @@ class AuthService {
       return false;
     }
   }
+
+  // Verify identity for forgot password (Step 1)
+  Future<Map<String, dynamic>> verifyIdentityForReset({
+    required String username,
+    required String nik,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConfig.forgotPasswordVerify,
+        data: {
+          'username': username,
+          'nik': nik,
+        },
+      );
+
+      if (response.data['success']) {
+        return response.data['data'];
+      } else {
+        throw ApiException(
+          message: response.data['message'] ?? 'Gagal memverifikasi identitas',
+        );
+      }
+    } catch (e) {
+      DebugLogger.error('Verify identity error', error: e, tag: 'AuthService');
+      rethrow;
+    }
+  }
+
+  // Reset password with face verification (Step 2)
+  Future<void> resetPasswordWithFace({
+    required String resetToken,
+    required String faceImage,
+    required double faceConfidence,
+    required bool livenessVerified,
+    required String newPassword,
+    required String passwordConfirmation,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConfig.forgotPasswordReset,
+        data: {
+          'reset_token': resetToken,
+          'face_image': faceImage,
+          'face_confidence': faceConfidence,
+          'liveness_verified': livenessVerified,
+          'new_password': newPassword,
+          'new_password_confirmation': passwordConfirmation,
+        },
+      );
+
+      if (!response.data['success']) {
+        throw ApiException(
+          message: response.data['message'] ?? 'Gagal mereset password',
+        );
+      }
+    } catch (e) {
+      DebugLogger.error('Reset password error', error: e, tag: 'AuthService');
+      rethrow;
+    }
+  }
 }

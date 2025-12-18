@@ -8,6 +8,7 @@ import '../utils/page_transitions.dart';
 import '../services/auth_service.dart';
 import '../providers/auth_provider.dart';
 import 'main_screen.dart';
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -426,9 +427,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           TextButton(
                             onPressed: () {
                               HapticFeedback.lightImpact();
-                              ToastUtils.showInfo(
+                              Navigator.push(
                                 context,
-                                'Password reset feature coming soon!',
+                                SlideRightRoute(
+                                  page: const ForgotPasswordScreen(),
+                                ),
                               );
                             },
                             style: TextButton.styleFrom(
@@ -437,7 +440,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             child: Text(
-                              'Forgot Password?',
+                              'Lupa Password?',
                               style: TextStyle(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.w600,

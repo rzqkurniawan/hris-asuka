@@ -572,4 +572,307 @@ class AuthController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Verify user identity for forgot password (Step 1)
+     * Request: username, nik
+     * Returns: reset_token, employee_avatar_url
+     */
+    public function verifyIdentity(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'username' => 'required|string',
+            'nik' => 'required|numeric|digits:16',
+        ], [
+            'nik.digits' => 'NIK harus 16 digit',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            // Find user by username
+            $user = User::where('username', $request->username)->first();
+
+            if (!$user) {
+                // Log failed attempt
+                AuditLog::create([
+                    'action' => 'forgot_password_failed',
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'request_data' => ['username' => $request->username, 'reason' => 'user_not_found'],
+                    'response_status' => 404,
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Username tidak ditemukan',
+                ], 404);
+            }
+
+            // Check if user is active
+            if (!$user->is_active) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun tidak aktif. Hubungi administrator.',
+                ], 403);
+            }
+
+            // Get employee data from c3ais
+            $employee = Employee::find($user->employee_id);
+
+            if (!$employee) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data karyawan tidak ditemukan',
+                ], 404);
+            }
+
+            // Verify NIK matches sin_num
+            if ($employee->sin_num !== $request->nik) {
+                // Log failed attempt
+                AuditLog::create([
+                    'user_id' => $user->id,
+                    'action' => 'forgot_password_failed',
+                    'ip_address' => $request->ip(),
+                    'user_agent' => $request->userAgent(),
+                    'request_data' => ['reason' => 'nik_mismatch'],
+                    'response_status' => 422,
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'NIK tidak cocok dengan data karyawan',
+                ], 422);
+            }
+
+            // Check if employee has avatar for face verification
+            if (!$employee->identity_file_name) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Foto karyawan tidak tersedia. Hubungi HRD untuk update foto.',
+                ], 422);
+            }
+
+            // Generate reset token (valid for 10 minutes)
+            $resetToken = bin2hex(random_bytes(32));
+            $expiresAt = now()->addMinutes(10);
+
+            // Store reset token in cache
+            \Cache::put(
+                "password_reset:{$resetToken}",
+                [
+                    'user_id' => $user->id,
+                    'employee_id' => $employee->employee_id,
+                    'expires_at' => $expiresAt->toISOString(),
+                ],
+                $expiresAt
+            );
+
+            // Log successful identity verification
+            AuditLog::create([
+                'user_id' => $user->id,
+                'action' => 'forgot_password_identity_verified',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'response_status' => 200,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Identitas terverifikasi. Silakan lakukan verifikasi wajah.',
+                'data' => [
+                    'reset_token' => $resetToken,
+                    'expires_at' => $expiresAt->toISOString(),
+                    'employee_name' => $employee->fullname,
+                    'avatar_url' => url("/api/employees/photo/{$employee->identity_file_name}"),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal memverifikasi identitas',
+            ], 500);
+        }
+    }
+
+    /**
+     * Reset password with face verification (Step 2)
+     * Request: reset_token, face_image, face_confidence, liveness_verified, new_password, password_confirmation
+     */
+    public function resetPasswordWithFace(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'reset_token' => 'required|string',
+            'face_image' => 'required|string', // Base64 encoded
+            'face_confidence' => 'required|numeric|between:0,100',
+            'liveness_verified' => 'required|boolean',
+            'new_password' => [
+                'required',
+                'string',
+                'min:12',
+                'max:128',
+                'confirmed',
+                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+=\[\]{};:\'",.<>\/\\|`~-]).+$/',
+            ],
+        ], [
+            'new_password.regex' => 'Password harus mengandung huruf besar, huruf kecil, angka, dan karakter khusus (!@#$%^&*)',
+            'new_password.min' => 'Password minimal 12 karakter',
+            'new_password.max' => 'Password maksimal 128 karakter',
+            'new_password.confirmed' => 'Konfirmasi password tidak cocok',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            // Validate reset token
+            $tokenData = \Cache::get("password_reset:{$request->reset_token}");
+
+            if (!$tokenData) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token tidak valid atau sudah kadaluarsa. Silakan ulangi dari awal.',
+                ], 422);
+            }
+
+            // Validate liveness detection
+            if (!$request->boolean('liveness_verified')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Verifikasi liveness gagal. Pastikan Anda mengedipkan mata dan menggerakkan kepala.',
+                ], 400);
+            }
+
+            // Validate face confidence (minimum 80%)
+            $minConfidence = 80.0;
+            if ($request->face_confidence < $minConfidence) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Verifikasi wajah gagal. Tingkat kecocokan terlalu rendah.',
+                    'data' => [
+                        'face_confidence' => $request->face_confidence,
+                        'min_required' => $minConfidence,
+                    ],
+                ], 400);
+            }
+
+            // Check for common weak passwords
+            $commonPasswords = [
+                '123456789012',
+                '1234567890123',
+                '12345678901234',
+                'password1234',
+                'password12345',
+                'password123456',
+                'qwerty123456',
+                'qwertyuiop12',
+                'admin1234567',
+                'administrator1',
+                'letmein12345',
+                'welcome12345',
+                'iloveyou1234',
+                'sunshine1234',
+                'princess1234',
+                'football1234',
+                'abc123456789',
+                'monkey123456',
+                'shadow123456',
+                'master123456',
+            ];
+
+            $lowercasePassword = strtolower($request->new_password);
+            foreach ($commonPasswords as $commonPass) {
+                if (strtolower($commonPass) === $lowercasePassword) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Password terlalu umum. Gunakan kombinasi yang lebih unik',
+                        'errors' => [
+                            'new_password' => ['Password terlalu umum. Gunakan kombinasi yang lebih unik']
+                        ],
+                    ], 422);
+                }
+            }
+
+            // Get user
+            $user = User::find($tokenData['user_id']);
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User tidak ditemukan',
+                ], 404);
+            }
+
+            // Save face image for audit
+            $faceImagePath = $this->saveFaceImage(
+                $request->face_image,
+                $user->id,
+                'password_reset'
+            );
+
+            // Update password
+            $user->password = Hash::make($request->new_password);
+            $user->save();
+
+            // Invalidate reset token
+            \Cache::forget("password_reset:{$request->reset_token}");
+
+            // Revoke all existing tokens (logout from all devices)
+            MobileToken::where('user_id', $user->id)->delete();
+
+            // Log password reset
+            AuditLog::create([
+                'user_id' => $user->id,
+                'action' => 'forgot_password_reset',
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'request_data' => [
+                    'face_confidence' => $request->face_confidence,
+                    'face_image_path' => $faceImagePath,
+                ],
+                'response_status' => 200,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password berhasil direset. Silakan login dengan password baru.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mereset password',
+            ], 500);
+        }
+    }
+
+    /**
+     * Save base64 face image to storage
+     */
+    private function saveFaceImage(string $base64Image, int $userId, string $action): string
+    {
+        // Remove data URL prefix if exists
+        if (strpos($base64Image, 'base64,') !== false) {
+            $base64Image = explode('base64,', $base64Image)[1];
+        }
+
+        $imageData = base64_decode($base64Image);
+        $date = now()->format('Y-m-d');
+        $timestamp = now()->format('His');
+        $filename = "face_verification/{$date}/{$userId}_{$action}_{$timestamp}.jpg";
+
+        \Storage::disk('public')->put($filename, $imageData);
+
+        return $filename;
+    }
 }

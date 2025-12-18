@@ -43,6 +43,19 @@ Route::prefix('auth')->group(function () {
     Route::middleware('throttle:5,1')->group(function () {
         Route::post('/login', [AuthController::class, 'login']);
     });
+
+    // Forgot Password routes (rate limited for security)
+    Route::prefix('forgot-password')->group(function () {
+        // Rate limit: 5 requests per minute for identity verification
+        Route::middleware('throttle:5,1')->group(function () {
+            Route::post('/verify-identity', [AuthController::class, 'verifyIdentity']);
+        });
+
+        // Rate limit: 3 requests per minute for password reset
+        Route::middleware('throttle:3,1')->group(function () {
+            Route::post('/reset', [AuthController::class, 'resetPasswordWithFace']);
+        });
+    });
 });
 
 // Protected routes (require authentication)

@@ -13,6 +13,8 @@ class ApiConfig {
   static const String me = '/auth/me';
   static const String refreshToken = '/auth/refresh';
   static const String changePassword = '/auth/change-password';
+  static const String forgotPasswordVerify = '/auth/forgot-password/verify-identity';
+  static const String forgotPasswordReset = '/auth/forgot-password/reset';
 
   // Profile Endpoints (future implementation)
   static const String profile = '/profile';
