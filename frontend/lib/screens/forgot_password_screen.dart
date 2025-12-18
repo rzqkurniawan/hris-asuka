@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/api_client.dart';
 import '../utils/toast_utils.dart';
 import '../utils/page_transitions.dart';
+import '../utils/debug_logger.dart';
 import 'face_verification_reset_screen.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -61,16 +62,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         );
       }
     } on ApiException catch (e) {
+      DebugLogger.error('ApiException in forgot password', error: e.message, tag: 'ForgotPassword');
       if (mounted) {
         setState(() => _isLoading = false);
         HapticFeedback.mediumImpact();
         ToastUtils.showError(context, e.message);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      DebugLogger.error('Error in forgot password', error: e, tag: 'ForgotPassword');
+      DebugLogger.error('Stack trace', error: stackTrace, tag: 'ForgotPassword');
       if (mounted) {
         setState(() => _isLoading = false);
         HapticFeedback.mediumImpact();
-        ToastUtils.showError(context, 'Gagal memverifikasi identitas');
+        ToastUtils.showError(context, 'Gagal memverifikasi identitas: ${e.toString()}');
       }
     }
   }
