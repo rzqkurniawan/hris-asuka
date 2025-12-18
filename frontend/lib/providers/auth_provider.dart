@@ -68,6 +68,9 @@ class AuthProvider with ChangeNotifier {
     required String username,
     required String password,
     required String passwordConfirmation,
+    required String faceImage,
+    required double faceConfidence,
+    required bool livenessVerified,
   }) async {
     _setLoading(true);
     _errorMessage = null;
@@ -79,6 +82,9 @@ class AuthProvider with ChangeNotifier {
         username: username,
         password: password,
         passwordConfirmation: passwordConfirmation,
+        faceImage: faceImage,
+        faceConfidence: faceConfidence,
+        livenessVerified: livenessVerified,
       );
 
       if (response['success']) {

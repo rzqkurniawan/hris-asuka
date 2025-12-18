@@ -775,18 +775,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       color: AppColors.overlayLight,
                                     ),
                                   )
-                                : const Row(
+                                : Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text(
-                                        'Lanjutkan ke Verifikasi Wajah',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
+                                      Flexible(
+                                        child: Text(
+                                          'Lanjutkan ke Verifikasi Wajah',
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
-                                      SizedBox(width: 8),
-                                      Icon(Icons.arrow_forward, size: 18),
+                                      const SizedBox(width: 6),
+                                      const Icon(Icons.arrow_forward, size: 18),
                                     ],
                                   ),
                           ),
