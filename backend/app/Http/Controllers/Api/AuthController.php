@@ -71,6 +71,77 @@ class AuthController extends Controller
     }
 
     /**
+     * Get employee avatar for registration face verification
+     * Request: employee_id, nik (for identity verification)
+     */
+    public function getEmployeeAvatarForRegister(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'employee_id' => 'required|integer',
+            'nik' => 'required|numeric|digits:16',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            // Check if employee_id already has user account
+            $existingUser = User::where('employee_id', $request->employee_id)->first();
+            if ($existingUser) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Karyawan ini sudah memiliki akun',
+                ], 422);
+            }
+
+            // Get employee data
+            $employee = Employee::find($request->employee_id);
+
+            if (!$employee) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Data karyawan tidak ditemukan',
+                ], 404);
+            }
+
+            // Verify NIK matches
+            if ($employee->sin_num !== $request->nik) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'NIK tidak cocok dengan data karyawan',
+                ], 422);
+            }
+
+            // Check if employee has photo
+            if (!$employee->identity_file_name) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Foto karyawan tidak tersedia. Hubungi HRD untuk update foto.',
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Employee avatar retrieved',
+                'data' => [
+                    'employee_name' => $employee->fullname,
+                    'avatar_url' => url("/api/employees/photo/{$employee->identity_file_name}"),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil data karyawan',
+            ], 500);
+        }
+    }
+
+    /**
      * Register a new user
      * Request: employee_id (from c3ais), nik, username, password
      */
@@ -95,6 +166,10 @@ class AuthController extends Controller
                 'confirmed',
                 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+=\[\]{};:\'",.<>\/\\|`~-]).+$/', // Uppercase, lowercase, number, special char
             ],
+            // Face verification fields (required for registration)
+            'face_image' => 'required|string',
+            'face_confidence' => 'required|numeric|min:80|max:100',
+            'liveness_verified' => 'required|boolean',
         ], [
             'username.regex' => 'Username hanya boleh mengandung huruf dan angka',
             'username.min' => 'Username minimal 6 karakter',
@@ -102,6 +177,9 @@ class AuthController extends Controller
             'password.regex' => 'Password harus mengandung huruf besar, huruf kecil, angka, dan karakter khusus (!@#$%^&*)',
             'password.min' => 'Password minimal 12 karakter',
             'password.max' => 'Password maksimal 128 karakter',
+            'face_image.required' => 'Verifikasi wajah diperlukan untuk registrasi',
+            'face_confidence.min' => 'Tingkat kecocokan wajah minimal 80%',
+            'liveness_verified.required' => 'Verifikasi liveness diperlukan',
         ]);
 
         if ($validator->fails()) {
@@ -168,6 +246,29 @@ class AuthController extends Controller
                 ], 422);
             }
 
+            // Validate employee has photo for face verification
+            if (!$employee->identity_file_name) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Foto karyawan tidak tersedia. Hubungi HRD untuk update foto.',
+                ], 422);
+            }
+
+            // Validate liveness verification passed
+            if (!$request->boolean('liveness_verified')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Verifikasi liveness gagal. Pastikan Anda mengedipkan mata dan menggerakkan kepala.',
+                ], 400);
+            }
+
+            // Save face image for audit
+            $faceImagePath = $this->saveFaceImage(
+                $request->face_image,
+                $request->employee_id,
+                'register'
+            );
+
             // Create user account (only credential)
             $user = User::create([
                 'employee_id' => $request->employee_id,
@@ -186,12 +287,17 @@ class AuthController extends Controller
                 'biometric_enabled' => false,
             ]);
 
-            // Log registration
+            // Log registration with face verification data
             AuditLog::create([
                 'user_id' => $user->id,
                 'action' => 'register',
                 'ip_address' => $request->ip(),
                 'user_agent' => $request->userAgent(),
+                'request_data' => [
+                    'face_confidence' => $request->face_confidence,
+                    'liveness_verified' => $request->boolean('liveness_verified'),
+                    'face_image_path' => $faceImagePath,
+                ],
                 'response_status' => 201,
             ]);
 

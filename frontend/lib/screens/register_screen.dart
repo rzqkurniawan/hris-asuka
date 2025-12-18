@@ -5,6 +5,9 @@ import '../constants/app_colors.dart';
 import '../services/auth_service.dart';
 import '../services/api_client.dart';
 import '../utils/toast_utils.dart';
+import '../utils/debug_logger.dart';
+import '../config/api_config.dart';
+import 'face_verification_register_screen.dart';
 import 'dart:async';
 
 class RegisterScreen extends StatefulWidget {
@@ -105,28 +108,75 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     try {
       final authService = AuthService();
-      await authService.register(
-        employeeId: _selectedEmployee!['employee_id'] as int,
-        nik: _nikController.text.trim(),
+      final employeeId = _selectedEmployee!['employee_id'] as int;
+      final nik = _nikController.text.trim();
+      final employeeName = (_selectedEmployee!['fullname'] ?? 'Unknown').toString();
+
+      DebugLogger.log('Getting employee avatar for face verification', tag: 'Register');
+
+      // Step 1: Get employee avatar for face verification
+      final avatarData = await authService.getEmployeeAvatarForRegister(
+        employeeId: employeeId,
+        nik: nik,
+      );
+
+      if (!mounted) return;
+
+      final avatarUrl = avatarData['avatar_url'] as String?;
+
+      if (avatarUrl == null || avatarUrl.isEmpty) {
+        setState(() => _isLoading = false);
+        HapticFeedback.mediumImpact();
+        ToastUtils.showError(
+          context,
+          'Foto karyawan tidak ditemukan. Hubungi HRD untuk update foto.',
+        );
+        return;
+      }
+
+      setState(() => _isLoading = false);
+
+      DebugLogger.log('Avatar URL: $avatarUrl', tag: 'Register');
+
+      // Step 2: Navigate to face verification screen
+      final registrationData = RegistrationData(
+        employeeId: employeeId,
+        nik: nik,
         username: _usernameController.text.trim(),
         password: _passwordController.text,
         passwordConfirmation: _confirmPasswordController.text,
+        employeeName: employeeName,
+        avatarUrl: avatarUrl,
       );
 
+      final result = await Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FaceVerificationRegisterScreen(
+            registrationData: registrationData,
+          ),
+        ),
+      );
+
+      // Step 3: Handle result
+      if (result == true && mounted) {
+        // Registration successful, navigate back to login
+        Navigator.pop(context, true);
+      }
+    } on ApiException catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-
-        // Navigate back to login with success result
-        // Toast will be shown on login page after navigation
-        Navigator.pop(context, true);
+        HapticFeedback.mediumImpact();
+        ToastUtils.showError(context, e.message);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
         HapticFeedback.mediumImpact();
+        DebugLogger.error('Register error', error: e, tag: 'Register');
         ToastUtils.showError(
           context,
-          e.toString(),
+          'Terjadi kesalahan: ${e.toString()}',
         );
       }
     }
@@ -653,6 +703,57 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                         const SizedBox(height: 24),
 
+                        // Info about face verification
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.accent.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: AppColors.accent.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(
+                                Icons.face,
+                                color: AppColors.accent,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Verifikasi Wajah Diperlukan',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.accent,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Setelah mengisi form, Anda akan diminta verifikasi wajah untuk memastikan identitas.',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: isDark
+                                            ? AppColors.textSecondaryDark
+                                            : AppColors.textSecondaryLight,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
                         // Register Button
                         SizedBox(
                           height: 52,
@@ -674,12 +775,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       color: AppColors.overlayLight,
                                     ),
                                   )
-                                : const Text(
-                                    'Register',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                : const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Lanjutkan ke Verifikasi Wajah',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Icon(Icons.arrow_forward, size: 18),
+                                    ],
                                   ),
                           ),
                         ),

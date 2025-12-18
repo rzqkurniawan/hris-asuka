@@ -27,6 +27,9 @@ Route::get('/health', function () {
     ]);
 });
 
+// Public employee photo endpoint (needed for registration face verification)
+Route::get('/employees/photo/{filename}', [EmployeePhotoController::class, 'getPhoto']);
+
 // Public routes (no authentication required) - with rate limiting for security
 Route::prefix('auth')->group(function () {
     // Rate limit: 10 requests per minute for employee list
@@ -36,6 +39,7 @@ Route::prefix('auth')->group(function () {
 
     // Rate limit: 5 requests per minute for registration (prevent spam)
     Route::middleware('throttle:5,1')->group(function () {
+        Route::post('/register/get-avatar', [AuthController::class, 'getEmployeeAvatarForRegister']);
         Route::post('/register', [AuthController::class, 'register']);
     });
 
@@ -60,9 +64,6 @@ Route::prefix('auth')->group(function () {
 
 // Protected routes (require authentication)
 Route::middleware('auth:api')->group(function () {
-
-    // Employee photo endpoint (protected)
-    Route::get('/employees/photo/{filename}', [EmployeePhotoController::class, 'getPhoto']);
 
     // Auth routes
     Route::prefix('auth')->group(function () {

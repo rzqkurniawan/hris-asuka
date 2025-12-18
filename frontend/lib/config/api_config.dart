@@ -7,6 +7,7 @@ class ApiConfig {
 
   // Auth Endpoints
   static const String employees = '/auth/employees';
+  static const String registerGetAvatar = '/auth/register/get-avatar';
   static const String register = '/auth/register';
   static const String login = '/auth/login';
   static const String logout = '/auth/logout';

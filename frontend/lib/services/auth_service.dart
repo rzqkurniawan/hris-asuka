@@ -106,13 +106,43 @@ class AuthService {
     }
   }
 
-  // Register new user
+  // Get employee avatar for registration face verification
+  Future<Map<String, dynamic>> getEmployeeAvatarForRegister({
+    required int employeeId,
+    required String nik,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConfig.registerGetAvatar,
+        data: {
+          'employee_id': employeeId,
+          'nik': nik,
+        },
+      );
+
+      if (response.data['success']) {
+        return response.data['data'];
+      } else {
+        throw ApiException(
+          message: response.data['message'] ?? 'Gagal mengambil data karyawan',
+        );
+      }
+    } catch (e) {
+      DebugLogger.error('Get avatar for register error', error: e, tag: 'AuthService');
+      rethrow;
+    }
+  }
+
+  // Register new user with face verification
   Future<Map<String, dynamic>> register({
     required int employeeId,
     required String nik,
     required String username,
     required String password,
     required String passwordConfirmation,
+    required String faceImage,
+    required double faceConfidence,
+    required bool livenessVerified,
   }) async {
     try {
       final deviceInfo = await _getDeviceInfo();
@@ -125,6 +155,9 @@ class AuthService {
           'username': username,
           'password': password,
           'password_confirmation': passwordConfirmation,
+          'face_image': faceImage,
+          'face_confidence': faceConfidence,
+          'liveness_verified': livenessVerified,
           ...deviceInfo,
         },
       );
