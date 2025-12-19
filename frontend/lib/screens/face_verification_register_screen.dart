@@ -13,9 +13,9 @@ import '../services/api_client.dart';
 import '../utils/toast_utils.dart';
 
 /// Registration data passed from RegisterScreen
+/// Note: NIK removed - face recognition prevents impersonation
 class RegistrationData {
   final int employeeId;
-  final String nik;
   final String username;
   final String password;
   final String passwordConfirmation;
@@ -24,7 +24,6 @@ class RegistrationData {
 
   RegistrationData({
     required this.employeeId,
-    required this.nik,
     required this.username,
     required this.password,
     required this.passwordConfirmation,
@@ -773,7 +772,6 @@ class _FaceVerificationRegisterScreenState
     try {
       await _authService.register(
         employeeId: widget.registrationData.employeeId,
-        nik: widget.registrationData.nik,
         username: widget.registrationData.username,
         password: widget.registrationData.password,
         passwordConfirmation: widget.registrationData.passwordConfirmation,

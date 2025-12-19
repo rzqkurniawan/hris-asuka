@@ -20,7 +20,6 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _nikController = TextEditingController();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -47,7 +46,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void dispose() {
     _debounce?.cancel();
-    _nikController.dispose();
     _usernameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -110,7 +108,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     try {
       final authService = AuthService();
       final employeeId = _selectedEmployee!['employee_id'] as int;
-      final nik = _nikController.text.trim();
       final employeeName = (_selectedEmployee!['fullname'] ?? 'Unknown').toString();
 
       DebugLogger.log('Getting employee avatar for face verification', tag: 'Register');
@@ -118,7 +115,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // Step 1: Get employee avatar for face verification
       final avatarData = await authService.getEmployeeAvatarForRegister(
         employeeId: employeeId,
-        nik: nik,
       );
 
       if (!mounted) return;
@@ -143,7 +139,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // Step 2: Navigate to face verification screen
       final registrationData = RegistrationData(
         employeeId: employeeId,
-        nik: nik,
         username: _usernameController.text.trim(),
         password: _passwordController.text,
         passwordConfirmation: _confirmPasswordController.text,
@@ -418,40 +413,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ],
                         ],
-
-                        const SizedBox(height: 20),
-
-                        // NIK Field
-                        Text(
-                          l10n.get('nik_16_digit'),
-                          style:
-                              Theme.of(context).textTheme.labelLarge?.copyWith(
-                                    fontSize: 14,
-                                  ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: _nikController,
-                          keyboardType: TextInputType.number,
-                          maxLength: 16,
-                          decoration: InputDecoration(
-                            hintText: l10n.get('enter_16_digit_nik'),
-                            prefixIcon: const Icon(Icons.badge_outlined),
-                            counterText: '',
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return l10n.fieldRequired;
-                            }
-                            if (value.length != 16) {
-                              return l10n.nikDigits;
-                            }
-                            if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                              return l10n.get('invalid_format');
-                            }
-                            return null;
-                          },
-                        ),
 
                         const SizedBox(height: 20),
 

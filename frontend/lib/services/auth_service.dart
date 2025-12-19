@@ -107,16 +107,15 @@ class AuthService {
   }
 
   // Get employee avatar for registration face verification
+  // Note: NIK verification removed - face recognition prevents impersonation
   Future<Map<String, dynamic>> getEmployeeAvatarForRegister({
     required int employeeId,
-    required String nik,
   }) async {
     try {
       final response = await _apiClient.post(
         ApiConfig.registerGetAvatar,
         data: {
           'employee_id': employeeId,
-          'nik': nik,
         },
       );
 
@@ -134,9 +133,9 @@ class AuthService {
   }
 
   // Register new user with face verification
+  // Note: NIK verification removed - face recognition prevents impersonation
   Future<Map<String, dynamic>> register({
     required int employeeId,
-    required String nik,
     required String username,
     required String password,
     required String passwordConfirmation,
@@ -151,7 +150,6 @@ class AuthService {
         ApiConfig.register,
         data: {
           'employee_id': employeeId,
-          'nik': nik,
           'username': username,
           'password': password,
           'password_confirmation': passwordConfirmation,

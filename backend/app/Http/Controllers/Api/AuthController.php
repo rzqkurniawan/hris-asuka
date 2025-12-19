@@ -74,13 +74,13 @@ class AuthController extends Controller
 
     /**
      * Get employee avatar for registration face verification
-     * Request: employee_id, nik (for identity verification)
+     * Request: employee_id
+     * Note: NIK verification removed - face recognition prevents impersonation
      */
     public function getEmployeeAvatarForRegister(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'employee_id' => 'required|integer',
-            'nik' => 'required|numeric|digits:16',
         ]);
 
         if ($validator->fails()) {
@@ -111,16 +111,8 @@ class AuthController extends Controller
                 ], 404);
             }
 
-            // Verify NIK matches
-            if ($employee->sin_num !== $request->nik) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'NIK tidak cocok dengan data karyawan',
-                ], 422);
-            }
-
-            // Check if employee has photo
-            if (!$employee->identity_file_name) {
+            // Check if employee has photo for face verification
+            if (!$employee->employee_file_name) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Foto karyawan tidak tersedia. Hubungi HRD untuk update foto.',
@@ -132,7 +124,7 @@ class AuthController extends Controller
                 'message' => 'Employee avatar retrieved',
                 'data' => [
                     'employee_name' => $employee->fullname,
-                    'avatar_url' => url("/api/employees/photo/{$employee->identity_file_name}"),
+                    'avatar_url' => url("/api/employees/photo/{$employee->employee_file_name}"),
                 ],
             ]);
         } catch (\Exception $e) {
@@ -145,13 +137,13 @@ class AuthController extends Controller
 
     /**
      * Register a new user
-     * Request: employee_id (from c3ais), nik, username, password
+     * Request: employee_id (from c3ais), username, password
+     * Note: NIK verification removed - face recognition prevents impersonation
      */
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'employee_id' => 'required|integer|unique:users',
-            'nik' => 'required|numeric|digits:16',
             'username' => [
                 'required',
                 'string',
@@ -240,16 +232,8 @@ class AuthController extends Controller
                 ], 404);
             }
 
-            // Validate NIK matches sin_num in database
-            if ($employee->sin_num !== $request->nik) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'NIK tidak cocok dengan data karyawan',
-                ], 422);
-            }
-
             // Validate employee has photo for face verification
-            if (!$employee->identity_file_name) {
+            if (!$employee->employee_file_name) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Foto karyawan tidak tersedia. Hubungi HRD untuk update foto.',
@@ -268,13 +252,13 @@ class AuthController extends Controller
             $faceComparisonService = new FaceComparisonService();
 
             // Get the path to the employee's stored photo (from photo-cache synced from GCP)
-            $employeePhotoPath = storage_path("app/photo-cache/{$employee->identity_file_name}");
+            $employeePhotoPath = storage_path("app/photo-cache/{$employee->employee_file_name}");
 
             // Check if photo exists
             if (!file_exists($employeePhotoPath)) {
                 Log::warning('Employee photo not found for face comparison', [
                     'employee_id' => $employee->employee_id,
-                    'identity_file_name' => $employee->identity_file_name,
+                    'employee_file_name' => $employee->employee_file_name,
                     'tried_path' => $employeePhotoPath,
                 ]);
 
