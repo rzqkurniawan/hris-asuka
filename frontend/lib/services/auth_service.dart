@@ -393,16 +393,15 @@ class AuthService {
   }
 
   // Verify identity for forgot password (Step 1)
+  // Note: NIK verification removed - face recognition prevents impersonation
   Future<Map<String, dynamic>> verifyIdentityForReset({
     required String username,
-    required String nik,
   }) async {
     try {
       final response = await _apiClient.post(
         ApiConfig.forgotPasswordVerify,
         data: {
           'username': username,
-          'nik': nik,
         },
       );
 

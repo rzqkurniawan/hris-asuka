@@ -19,7 +19,6 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
-  final _nikController = TextEditingController();
   final _authService = AuthService();
 
   bool _isLoading = false;
@@ -27,7 +26,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   void dispose() {
     _usernameController.dispose();
-    _nikController.dispose();
     super.dispose();
   }
 
@@ -43,7 +41,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     try {
       final result = await _authService.verifyIdentityForReset(
         username: _usernameController.text.trim(),
-        nik: _nikController.text.trim(),
       );
 
       if (mounted) {
@@ -138,7 +135,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
                 // Subtitle
                 Text(
-                  l10n.get('enter_username_nik_verify'),
+                  l10n.get('enter_username_to_verify'),
                   style: TextStyle(
                     fontSize: 14,
                     color: isDark
@@ -266,78 +263,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return l10n.fieldRequired;
-                          }
-                          return null;
-                        },
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // NIK Field
-                      Text(
-                        l10n.get('nik_full'),
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _nikController,
-                        keyboardType: TextInputType.number,
-                        maxLength: 16,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        decoration: InputDecoration(
-                          hintText: l10n.get('enter_16_digit_nik_hint'),
-                          hintStyle: TextStyle(
-                            color: isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondaryLight,
-                          ),
-                          prefixIcon: Icon(
-                            Icons.badge_outlined,
-                            color: isDark
-                                ? AppColors.textSecondaryDark
-                                : AppColors.textSecondaryLight,
-                          ),
-                          filled: true,
-                          fillColor: isDark
-                              ? AppColors.surfaceAltDark
-                              : AppColors.backgroundLight,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: isDark
-                                  ? AppColors.borderDark
-                                  : AppColors.borderLight,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: isDark
-                                  ? AppColors.borderDark
-                                  : AppColors.borderLight,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: AppColors.accent,
-                              width: 2,
-                            ),
-                          ),
-                          counterText: '',
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return l10n.fieldRequired;
-                          }
-                          if (value.length != 16) {
-                            return l10n.nikDigits;
                           }
                           return null;
                         },

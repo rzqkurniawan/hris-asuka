@@ -944,13 +944,15 @@ class AuthController extends Controller
         }
     }
 
+    /**
+     * Verify user identity for forgot password (Step 1)
+     * Request: username
+     * Note: NIK verification removed - face recognition prevents impersonation
+     */
     public function verifyIdentity(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'username' => 'required|string',
-            'nik' => 'required|numeric|digits:16',
-        ], [
-            'nik.digits' => 'NIK harus 16 digit',
         ]);
 
         if ($validator->fails()) {
@@ -997,24 +999,6 @@ class AuthController extends Controller
                     'success' => false,
                     'message' => 'Data karyawan tidak ditemukan',
                 ], 404);
-            }
-
-            // Verify NIK matches sin_num
-            if ($employee->sin_num !== $request->nik) {
-                // Log failed attempt
-                AuditLog::create([
-                    'user_id' => $user->id,
-                    'action' => 'forgot_password_failed',
-                    'ip_address' => $request->ip(),
-                    'user_agent' => $request->userAgent(),
-                    'request_data' => ['reason' => 'nik_mismatch'],
-                    'response_status' => 422,
-                ]);
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'NIK tidak cocok dengan data karyawan',
-                ], 422);
             }
 
             // Check if employee has avatar for face verification

@@ -523,6 +523,7 @@ const Map<String, String> _idTranslations = {
   // Forgot Password Screen
   'verify_identity': 'Verifikasi Identitas',
   'enter_username_nik_verify': 'Masukkan username dan NIK Anda untuk verifikasi identitas',
+  'enter_username_to_verify': 'Masukkan username Anda untuk melanjutkan ke verifikasi wajah',
   'after_verify_face': 'Setelah verifikasi identitas, Anda akan diminta untuk melakukan verifikasi wajah.',
   'nik_full': 'NIK (Nomor Induk Kependudukan)',
   'enter_16_digit_nik_hint': 'Masukkan 16 digit NIK',
@@ -877,6 +878,7 @@ const Map<String, String> _enTranslations = {
   // Forgot Password Screen
   'verify_identity': 'Verify Identity',
   'enter_username_nik_verify': 'Enter your username and NIK to verify your identity',
+  'enter_username_to_verify': 'Enter your username to proceed with face verification',
   'after_verify_face': 'After identity verification, you will be asked to perform face verification.',
   'nik_full': 'NIK (National ID Number)',
   'enter_16_digit_nik_hint': 'Enter 16 digit NIK',
