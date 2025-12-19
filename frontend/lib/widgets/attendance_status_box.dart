@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
 import 'package:geolocator/geolocator.dart';
 import '../constants/app_colors.dart';
 import '../l10n/app_localizations.dart';
 import '../services/mobile_attendance_service.dart';
 import '../utils/page_transitions.dart';
+import '../utils/responsive_utils.dart';
 import '../screens/face_verification_screen.dart';
 
 enum AttendanceStatus { work, late, absent, leave, notYet }
@@ -30,8 +32,6 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
   bool _isLoading = true;
   bool _isCheckingLocation = false;
   TodayAttendanceStatus? _todayStatus;
-  Position? _currentPosition;
-  LocationValidationResult? _locationValidation;
 
   @override
   void initState() {
@@ -58,11 +58,9 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
 
     setState(() {
       _isCheckingLocation = true;
-      _locationValidation = null;
     });
 
     try {
-      // Check location permission
       var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -75,27 +73,21 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
         throw Exception('location_permission_permanent');
       }
 
-      // Check if location service is enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
         throw Exception('location_service_inactive');
       }
 
-      // Get current position
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
       );
 
-      setState(() => _currentPosition = position);
-
-      // Validate location against allowed locations
       final validation = await _attendanceService.validateLocation(
         latitude: position.latitude,
         longitude: position.longitude,
       );
 
       setState(() {
-        _locationValidation = validation;
         _isCheckingLocation = false;
       });
 
@@ -106,7 +98,6 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
         return;
       }
 
-      // Location is valid, proceed to face verification
       if (mounted) {
         Navigator.push(
           context,
@@ -119,10 +110,6 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
               locationName: validation.locationName!,
               onSuccess: () {
                 _loadData();
-                setState(() {
-                  _currentPosition = null;
-                  _locationValidation = null;
-                });
                 widget.onAttendanceComplete?.call();
               },
             ),
@@ -148,19 +135,23 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
 
   void _showLocationErrorDialog(LocationValidationResult validation) {
     final l10n = AppLocalizations.of(context);
+    final isTablet = Responsive.isTablet(context);
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: widget.isDarkMode ? AppColors.cardDark : Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(isTablet ? 16 : 16.r),
+        ),
         title: Row(
           children: [
-            Icon(Icons.location_off, color: Colors.red[400], size: 28),
-            const SizedBox(width: 10),
+            Icon(Icons.location_off, color: Colors.red[400], size: isTablet ? 28 : 28.sp),
+            SizedBox(width: isTablet ? 10 : 10.w),
             Text(
               l10n.get('location_invalid'),
               style: TextStyle(
-                fontSize: 18,
+                fontSize: isTablet ? 18 : 18.sp,
                 fontWeight: FontWeight.bold,
                 color: widget.isDarkMode ? Colors.white : AppColors.textPrimary,
               ),
@@ -178,25 +169,25 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
               ),
             ),
             if (validation.nearestLocation != null) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: isTablet ? 12 : 12.h),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(isTablet ? 12 : 12.w),
                 decoration: BoxDecoration(
                   color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(isTablet ? 8 : 8.r),
                   border: Border.all(color: Colors.orange.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.near_me, color: Colors.orange[700], size: 20),
-                    const SizedBox(width: 8),
+                    Icon(Icons.near_me, color: Colors.orange[700], size: isTablet ? 20 : 20.sp),
+                    SizedBox(width: isTablet ? 8 : 8.w),
                     Expanded(
                       child: Text(
                         l10n.get('nearest_location_info')
                             .replaceAll('{location}', validation.nearestLocation!)
                             .replaceAll('{distance}', validation.distanceToNearest?.toStringAsFixed(0) ?? '0'),
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: isTablet ? 13 : 13.sp,
                           color: Colors.orange[700],
                         ),
                       ),
@@ -221,13 +212,10 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
     if (_todayStatus == null) return AttendanceStatus.notYet;
 
     final checkIn = _todayStatus!.checkIn;
-    final checkOut = _todayStatus!.checkOut;
 
     if (checkIn == null) return AttendanceStatus.notYet;
 
-    // Simple logic - can be enhanced based on actual business rules
     if (checkIn.time != null) {
-      // Parse time and check if late (after 08:30)
       try {
         final parts = checkIn.time!.split(':');
         final hour = int.parse(parts[0]);
@@ -245,15 +233,12 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
     try {
       DateTime date;
       if (dateString != null) {
-        // Parse date from API format "2025-12-10"
         date = DateTime.parse(dateString);
       } else {
         date = DateTime.now();
       }
-      // Format to "Wednesday, 10 December 2025"
       return DateFormat('EEEE, dd MMMM yyyy').format(date);
     } catch (e) {
-      // Fallback to current date if parsing fails
       return DateFormat('EEEE, dd MMMM yyyy').format(DateTime.now());
     }
   }
@@ -261,11 +246,23 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final isTablet = Responsive.isTablet(context);
+
+    // Use fixed pixels for tablet, ScreenUtil for phone
+    final containerPadding = isTablet ? 24.0 : 20.w;
+    final borderRadius = isTablet ? 20.0 : 20.r;
+    final titleIconSize = isTablet ? 22.0 : 20.sp;
+    final titleFontSize = isTablet ? 17.0 : 16.sp;
+    final sectionSpacing = isTablet ? 15.0 : 15.h;
+    final itemSpacing = isTablet ? 12.0 : 12.w;
+    final calendarIconSize = isTablet ? 15.0 : 14.sp;
+    final dateFontSize = isTablet ? 14.0 : 13.sp;
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(containerPadding),
       decoration: BoxDecoration(
         color: widget.isDarkMode ? AppColors.surfaceAltDark : AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(borderRadius),
         boxShadow: [
           BoxShadow(
             color: widget.isDarkMode
@@ -277,7 +274,7 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
         ],
       ),
       child: _isLoading
-          ? _buildLoadingState()
+          ? _buildLoadingState(isTablet)
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -292,13 +289,13 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
                           color: widget.isDarkMode
                               ? AppColors.textPrimaryDark
                               : AppColors.textPrimaryLight,
-                          size: 20,
+                          size: titleIconSize,
                         ),
-                        const SizedBox(width: 10),
+                        SizedBox(width: isTablet ? 10 : 10.w),
                         Text(
                           l10n.get('attendance_status'),
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: titleFontSize,
                             fontWeight: FontWeight.bold,
                             color: widget.isDarkMode
                                 ? AppColors.textPrimaryDark
@@ -307,11 +304,10 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
                         ),
                       ],
                     ),
-                    // Status Badge (small)
-                    _buildSmallStatusBadge(l10n),
+                    _buildSmallStatusBadge(l10n, isTablet),
                   ],
                 ),
-                const SizedBox(height: 15),
+                SizedBox(height: sectionSpacing),
 
                 // Time Grid with Check In/Out buttons
                 Row(
@@ -325,9 +321,10 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
                         onTap: () => _checkLocationAndProceed('check_in'),
                         isCheckIn: true,
                         l10n: l10n,
+                        isTablet: isTablet,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: itemSpacing),
                     Expanded(
                       child: _buildTimeItemWithButton(
                         label: l10n.checkOut,
@@ -337,11 +334,12 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
                         onTap: () => _checkLocationAndProceed('check_out'),
                         isCheckIn: false,
                         l10n: l10n,
+                        isTablet: isTablet,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 15),
+                SizedBox(height: sectionSpacing),
 
                 // Today Date
                 Center(
@@ -350,16 +348,16 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
                     children: [
                       Icon(
                         Icons.calendar_today,
-                        size: 14,
+                        size: calendarIconSize,
                         color: widget.isDarkMode
                             ? AppColors.textSecondaryDark
                             : AppColors.textSecondaryLight,
                       ),
-                      const SizedBox(width: 5),
+                      SizedBox(width: isTablet ? 5 : 5.w),
                       Text(
                         _formatDisplayDate(_todayStatus?.date),
                         style: TextStyle(
-                          fontSize: 13,
+                          fontSize: dateFontSize,
                           color: widget.isDarkMode
                               ? AppColors.textSecondaryDark
                               : AppColors.textSecondaryLight,
@@ -373,11 +371,11 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
     );
   }
 
-  Widget _buildLoadingState() {
-    return const Center(
+  Widget _buildLoadingState(bool isTablet) {
+    return Center(
       child: Padding(
-        padding: EdgeInsets.symmetric(vertical: 30),
-        child: CircularProgressIndicator(),
+        padding: EdgeInsets.symmetric(vertical: isTablet ? 30 : 30.h),
+        child: const CircularProgressIndicator(),
       ),
     );
   }
@@ -390,16 +388,27 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
     required VoidCallback onTap,
     required bool isCheckIn,
     required AppLocalizations l10n,
+    required bool isTablet,
   }) {
     final hasTime = time != '--:--';
-    // Color based on status: green if has time, red if no time
     final statusColor = hasTime ? Colors.green : Colors.red;
 
+    // Use fixed pixels for tablet
+    final itemPadding = isTablet ? 14.0 : 12.w;
+    final itemBorderRadius = isTablet ? 12.0 : 12.r;
+    final labelFontSize = isTablet ? 12.0 : 11.sp;
+    final statusIconSize = isTablet ? 18.0 : 16.sp;
+    final timeFontSize = isTablet ? 20.0 : 18.sp;
+    final locationFontSize = isTablet ? 11.0 : 10.sp;
+    final buttonPadding = isTablet ? 12.0 : 10.h;
+    final buttonIconSize = isTablet ? 18.0 : 16.sp;
+    final buttonFontSize = isTablet ? 13.0 : 12.sp;
+
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(itemPadding),
       decoration: BoxDecoration(
         color: widget.isDarkMode ? AppColors.surfaceDark : AppColors.backgroundLight,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(itemBorderRadius),
         border: Border(
           left: BorderSide(
             color: statusColor,
@@ -416,7 +425,7 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: labelFontSize,
                   fontWeight: FontWeight.w600,
                   color: widget.isDarkMode
                       ? AppColors.textSecondaryDark
@@ -425,33 +434,33 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
               ),
               Icon(
                 hasTime ? Icons.check_circle : Icons.cancel,
-                size: 16,
+                size: statusIconSize,
                 color: statusColor,
               ),
             ],
           ),
-          const SizedBox(height: 5),
+          SizedBox(height: isTablet ? 5 : 5.h),
           Text(
             time,
             style: TextStyle(
-              fontSize: 18,
+              fontSize: timeFontSize,
               fontWeight: FontWeight.bold,
               color: statusColor,
             ),
           ),
           if (location != null && hasTime) ...[
-            const SizedBox(height: 4),
+            SizedBox(height: isTablet ? 4 : 4.h),
             Text(
               location,
               style: TextStyle(
-                fontSize: 10,
+                fontSize: locationFontSize,
                 color: widget.isDarkMode ? Colors.grey[500] : Colors.grey[600],
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ],
-          const SizedBox(height: 8),
+          SizedBox(height: isTablet ? 8 : 8.h),
           // Action Button
           SizedBox(
             width: double.infinity,
@@ -462,17 +471,17 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: Colors.grey[300],
                 disabledForegroundColor: Colors.grey[500],
-                padding: const EdgeInsets.symmetric(vertical: 10),
+                padding: EdgeInsets.symmetric(vertical: buttonPadding),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(isTablet ? 8 : 8.r),
                 ),
                 elevation: 0,
               ),
               child: _isCheckingLocation
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
+                  ? SizedBox(
+                      width: isTablet ? 18 : 18.w,
+                      height: isTablet ? 18 : 18.w,
+                      child: const CircularProgressIndicator(
                         strokeWidth: 2,
                         color: Colors.white,
                       ),
@@ -482,13 +491,13 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
                       children: [
                         Icon(
                           isCheckIn ? Icons.login : Icons.logout,
-                          size: 16,
+                          size: buttonIconSize,
                         ),
-                        const SizedBox(width: 4),
+                        SizedBox(width: isTablet ? 4 : 4.w),
                         Text(
                           isCheckIn ? l10n.get('in_label') : l10n.get('out_label'),
-                          style: const TextStyle(
-                            fontSize: 12,
+                          style: TextStyle(
+                            fontSize: buttonFontSize,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -501,7 +510,7 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
     );
   }
 
-  Widget _buildSmallStatusBadge(AppLocalizations l10n) {
+  Widget _buildSmallStatusBadge(AppLocalizations l10n, bool isTablet) {
     final status = _getStatus();
     Color bgColor;
     Color textColor;
@@ -541,21 +550,27 @@ class _AttendanceStatusBoxState extends State<AttendanceStatusBox> {
         break;
     }
 
+    final badgeIconSize = isTablet ? 15.0 : 14.sp;
+    final badgeFontSize = isTablet ? 12.0 : 11.sp;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: EdgeInsets.symmetric(
+        horizontal: isTablet ? 10 : 10.w,
+        vertical: isTablet ? 5 : 5.h,
+      ),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(isTablet ? 20 : 20.r),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: textColor),
-          const SizedBox(width: 4),
+          Icon(icon, size: badgeIconSize, color: textColor),
+          SizedBox(width: isTablet ? 4 : 4.w),
           Text(
             statusText,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: badgeFontSize,
               fontWeight: FontWeight.bold,
               color: textColor,
             ),

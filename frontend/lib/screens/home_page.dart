@@ -11,6 +11,7 @@ import '../widgets/menu_grid.dart';
 import '../widgets/quick_stats_row.dart';
 import '../widgets/custom_dialog.dart';
 import '../utils/page_transitions.dart';
+import '../utils/responsive_utils.dart';
 import '../providers/auth_provider.dart';
 import '../services/attendance_service.dart';
 import '../models/attendance_model.dart';
@@ -76,6 +77,12 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isTablet = Responsive.isTablet(context);
+    // Use fixed pixels for tablet, ScreenUtil for phone
+    final horizontalPadding = isTablet
+        ? Responsive.getHorizontalPadding(context)
+        : 20.w;
+    final verticalPadding = isTablet ? 20.0 : 20.h;
 
     return Scaffold(
       backgroundColor:
@@ -83,7 +90,10 @@ class _HomePageState extends State<HomePage> {
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.all(20.w),
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
+          ),
           child: Consumer<AuthProvider>(
             builder: (context, authProvider, child) {
               final user = authProvider.user;
@@ -217,7 +227,7 @@ class _HomePageState extends State<HomePage> {
                       .fadeIn(duration: 500.ms, delay: 700.ms)
                       .slideY(begin: 0.2, end: 0),
 
-                  SizedBox(height: 100.h), // Space for bottom nav
+                  SizedBox(height: isTablet ? 100.0 : 100.h), // Space for bottom nav
                 ],
               );
             },
@@ -228,27 +238,35 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildSectionTitle(String title, IconData icon, bool isDarkMode) {
+    final isTablet = Responsive.isTablet(context);
+    // Use fixed pixels for tablet, ScreenUtil for phone
+    final containerPadding = isTablet ? 10.0 : 8.w;
+    final borderRadius = isTablet ? 10.0 : 10.r;
+    final iconSize = isTablet ? 20.0 : 18.sp;
+    final spacingWidth = isTablet ? 10.0 : 10.w;
+    final fontSize = isTablet ? 18.0 : 16.sp;
+
     return Row(
       children: [
         Container(
-          padding: EdgeInsets.all(8.w),
+          padding: EdgeInsets.all(containerPadding),
           decoration: BoxDecoration(
             color: isDarkMode
                 ? AppColors.accent.withOpacity(0.2)
                 : AppColors.accent.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10.r),
+            borderRadius: BorderRadius.circular(borderRadius),
           ),
           child: Icon(
             icon,
             color: AppColors.accent,
-            size: 18.sp,
+            size: iconSize,
           ),
         ),
-        SizedBox(width: 10.w),
+        SizedBox(width: spacingWidth),
         Text(
           title,
           style: TextStyle(
-            fontSize: 16.sp,
+            fontSize: fontSize,
             fontWeight: FontWeight.w700,
             color:
                 isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,

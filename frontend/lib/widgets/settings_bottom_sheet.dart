@@ -7,6 +7,7 @@ import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/locale_provider.dart';
 import '../l10n/app_localizations.dart';
+import '../utils/responsive_utils.dart';
 import 'change_password_bottom_sheet.dart';
 
 void showSettingsBottomSheet(BuildContext context) {
@@ -27,11 +28,35 @@ class _SettingsBottomSheet extends StatelessWidget {
       builder: (context, themeProvider, localeProvider, authProvider, child) {
         final isDarkMode = Theme.of(context).brightness == Brightness.dark;
         final l10n = AppLocalizations.of(context);
+        final isTablet = Responsive.isTablet(context);
+
+        // Use fixed pixels for tablet, ScreenUtil for phone
+        final borderRadius = isTablet ? 24.0 : 24.r;
+        final handleMarginTop = isTablet ? 12.0 : 12.h;
+        final handleWidth = isTablet ? 40.0 : 40.w;
+        final handleHeight = isTablet ? 4.0 : 4.h;
+        final handleBorderRadius = isTablet ? 2.0 : 2.r;
+        final titlePadding = isTablet ? 20.0 : 20.w;
+        final iconContainerPadding = isTablet ? 10.0 : 10.w;
+        final iconContainerBorderRadius = isTablet ? 12.0 : 12.r;
+        final iconSize = isTablet ? 24.0 : 24.sp;
+        final titleSpacing = isTablet ? 12.0 : 12.w;
+        final titleFontSize = isTablet ? 20.0 : 20.sp;
+        final menuHorizontalPadding = isTablet ? 16.0 : 16.w;
+        final menuVerticalPadding = isTablet ? 8.0 : 8.h;
+        final menuItemSpacing = isTablet ? 8.0 : 8.h;
+        final bottomSpacing = isTablet ? 16.0 : 16.h;
+        final langPaddingH = isTablet ? 8.0 : 8.w;
+        final langPaddingV = isTablet ? 4.0 : 4.h;
+        final langBorderRadius = isTablet ? 8.0 : 8.r;
+        final langFontSize = isTablet ? 12.0 : 12.sp;
+        final langSpacing = isTablet ? 4.0 : 4.w;
+        final langIconSize = isTablet ? 16.0 : 16.sp;
 
         return Container(
           decoration: BoxDecoration(
             color: isDarkMode ? AppColors.surfaceDark : AppColors.surfaceLight,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(borderRadius)),
           ),
           child: SafeArea(
             child: Column(
@@ -39,39 +64,39 @@ class _SettingsBottomSheet extends StatelessWidget {
               children: [
                 // Handle bar
                 Container(
-                  margin: EdgeInsets.only(top: 12.h),
-                  width: 40.w,
-                  height: 4.h,
+                  margin: EdgeInsets.only(top: handleMarginTop),
+                  width: handleWidth,
+                  height: handleHeight,
                   decoration: BoxDecoration(
                     color: isDarkMode
                         ? AppColors.textSecondaryDark.withOpacity(0.3)
                         : AppColors.textSecondaryLight.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(2.r),
+                    borderRadius: BorderRadius.circular(handleBorderRadius),
                   ),
                 ),
 
                 // Title
                 Padding(
-                  padding: EdgeInsets.all(20.w),
+                  padding: EdgeInsets.all(titlePadding),
                   child: Row(
                     children: [
                       Container(
-                        padding: EdgeInsets.all(10.w),
+                        padding: EdgeInsets.all(iconContainerPadding),
                         decoration: BoxDecoration(
                           color: AppColors.accent.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12.r),
+                          borderRadius: BorderRadius.circular(iconContainerBorderRadius),
                         ),
                         child: Icon(
                           Icons.settings_rounded,
                           color: AppColors.accent,
-                          size: 24.sp,
+                          size: iconSize,
                         ),
                       ),
-                      SizedBox(width: 12.w),
+                      SizedBox(width: titleSpacing),
                       Text(
                         l10n.settings,
                         style: TextStyle(
-                          fontSize: 20.sp,
+                          fontSize: titleFontSize,
                           fontWeight: FontWeight.bold,
                           color: isDarkMode
                               ? AppColors.textPrimaryDark
@@ -91,22 +116,23 @@ class _SettingsBottomSheet extends StatelessWidget {
 
                 // Menu Items
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                  padding: EdgeInsets.symmetric(horizontal: menuHorizontalPadding, vertical: menuVerticalPadding),
                   child: Column(
                     children: [
                       // Language
                       _buildMenuItem(
                         context: context,
                         isDarkMode: isDarkMode,
+                        isTablet: isTablet,
                         icon: Icons.language_rounded,
                         title: l10n.language,
                         subtitle: localeProvider.currentLanguageName,
                         color: AppColors.accent,
                         trailing: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 4.h),
+                          padding: EdgeInsets.symmetric(horizontal: langPaddingH, vertical: langPaddingV),
                           decoration: BoxDecoration(
                             color: AppColors.accent.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8.r),
+                            borderRadius: BorderRadius.circular(langBorderRadius),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -114,16 +140,16 @@ class _SettingsBottomSheet extends StatelessWidget {
                               Text(
                                 localeProvider.isIndonesian ? 'ID' : 'EN',
                                 style: TextStyle(
-                                  fontSize: 12.sp,
+                                  fontSize: langFontSize,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.accent,
                                 ),
                               ),
-                              SizedBox(width: 4.w),
+                              SizedBox(width: langSpacing),
                               Icon(
                                 Icons.arrow_drop_down,
                                 color: AppColors.accent,
-                                size: 16.sp,
+                                size: langIconSize,
                               ),
                             ],
                           ),
@@ -134,12 +160,13 @@ class _SettingsBottomSheet extends StatelessWidget {
                         },
                       ),
 
-                      SizedBox(height: 8.h),
+                      SizedBox(height: menuItemSpacing),
 
                       // Theme Switch
                       _buildMenuItem(
                         context: context,
                         isDarkMode: isDarkMode,
+                        isTablet: isTablet,
                         icon: isDarkMode
                             ? Icons.dark_mode_rounded
                             : Icons.light_mode_rounded,
@@ -161,12 +188,13 @@ class _SettingsBottomSheet extends StatelessWidget {
                         },
                       ),
 
-                      SizedBox(height: 8.h),
+                      SizedBox(height: menuItemSpacing),
 
                       // Change Password
                       _buildMenuItem(
                         context: context,
                         isDarkMode: isDarkMode,
+                        isTablet: isTablet,
                         icon: Icons.lock_outline_rounded,
                         title: l10n.changePassword,
                         subtitle: l10n.get('change_password_subtitle'),
@@ -178,12 +206,13 @@ class _SettingsBottomSheet extends StatelessWidget {
                         },
                       ),
 
-                      SizedBox(height: 8.h),
+                      SizedBox(height: menuItemSpacing),
 
                       // Logout
                       _buildMenuItem(
                         context: context,
                         isDarkMode: isDarkMode,
+                        isTablet: isTablet,
                         icon: Icons.logout_rounded,
                         title: l10n.logout,
                         subtitle: l10n.get('logout_subtitle'),
@@ -197,7 +226,7 @@ class _SettingsBottomSheet extends StatelessWidget {
                   ),
                 ),
 
-                SizedBox(height: 16.h),
+                SizedBox(height: bottomSpacing),
               ],
             ),
           ),
@@ -209,6 +238,7 @@ class _SettingsBottomSheet extends StatelessWidget {
   Widget _buildMenuItem({
     required BuildContext context,
     required bool isDarkMode,
+    required bool isTablet,
     required IconData icon,
     required String title,
     required String subtitle,
@@ -216,18 +246,30 @@ class _SettingsBottomSheet extends StatelessWidget {
     Widget? trailing,
     required VoidCallback onTap,
   }) {
+    // Use fixed pixels for tablet, ScreenUtil for phone
+    final borderRadius = isTablet ? 16.0 : 16.r;
+    final containerPadding = isTablet ? 16.0 : 16.w;
+    final iconContainerPadding = isTablet ? 10.0 : 10.w;
+    final iconBorderRadius = isTablet ? 12.0 : 12.r;
+    final iconSize = isTablet ? 22.0 : 22.sp;
+    final spacingWidth = isTablet ? 14.0 : 14.w;
+    final titleFontSize = isTablet ? 15.0 : 15.sp;
+    final subtitleFontSize = isTablet ? 12.0 : 12.sp;
+    final spacingHeight = isTablet ? 2.0 : 2.h;
+    final chevronSize = isTablet ? 24.0 : 24.sp;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16.r),
+        borderRadius: BorderRadius.circular(borderRadius),
         child: Container(
-          padding: EdgeInsets.all(16.w),
+          padding: EdgeInsets.all(containerPadding),
           decoration: BoxDecoration(
             color: isDarkMode
                 ? AppColors.overlayDark
                 : AppColors.overlayLight,
-            borderRadius: BorderRadius.circular(16.r),
+            borderRadius: BorderRadius.circular(borderRadius),
             border: Border.all(
               color: isDarkMode
                   ? AppColors.surfaceAltDark.withOpacity(0.5)
@@ -238,18 +280,18 @@ class _SettingsBottomSheet extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                padding: EdgeInsets.all(10.w),
+                padding: EdgeInsets.all(iconContainerPadding),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12.r),
+                  borderRadius: BorderRadius.circular(iconBorderRadius),
                 ),
                 child: Icon(
                   icon,
                   color: color,
-                  size: 22.sp,
+                  size: iconSize,
                 ),
               ),
-              SizedBox(width: 14.w),
+              SizedBox(width: spacingWidth),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -257,18 +299,18 @@ class _SettingsBottomSheet extends StatelessWidget {
                     Text(
                       title,
                       style: TextStyle(
-                        fontSize: 15.sp,
+                        fontSize: titleFontSize,
                         fontWeight: FontWeight.w600,
                         color: isDarkMode
                             ? AppColors.textPrimaryDark
                             : AppColors.textPrimaryLight,
                       ),
                     ),
-                    SizedBox(height: 2.h),
+                    SizedBox(height: spacingHeight),
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: 12.sp,
+                        fontSize: subtitleFontSize,
                         color: isDarkMode
                             ? AppColors.textSecondaryDark
                             : AppColors.textSecondaryLight,
@@ -284,7 +326,7 @@ class _SettingsBottomSheet extends StatelessWidget {
                   color: isDarkMode
                       ? AppColors.textSecondaryDark
                       : AppColors.textSecondaryLight,
-                  size: 24.sp,
+                  size: chevronSize,
                 ),
             ],
           ),

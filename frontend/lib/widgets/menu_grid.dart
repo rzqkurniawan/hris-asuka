@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../constants/app_colors.dart';
+import '../utils/responsive_utils.dart';
 
 class MenuGridItem {
   final IconData icon;
@@ -23,14 +25,21 @@ class MenuGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isTablet = Responsive.isTablet(context);
+    final columns = Responsive.getMenuGridColumns(context);
+    // Use fixed pixels for tablet, ScreenUtil for phone
+    final spacing = isTablet
+        ? Responsive.getGridSpacing(context)
+        : 15.w;
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 1.2,
-        crossAxisSpacing: 15,
-        mainAxisSpacing: 15,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: columns,
+        childAspectRatio: isTablet ? 1.0 : 1.2,
+        crossAxisSpacing: spacing,
+        mainAxisSpacing: spacing,
       ),
       itemCount: items.length,
       itemBuilder: (context, index) {
@@ -41,15 +50,27 @@ class MenuGrid extends StatelessWidget {
 
   Widget _buildMenuItem(MenuGridItem item, BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isTablet = Responsive.isTablet(context);
+
+    // Use fixed pixels for tablet, ScreenUtil for phone
+    final iconContainerSize = isTablet
+        ? Responsive.getMenuIconSize(context)
+        : 50.w;
+    final padding = isTablet ? 20.0 : 20.w;
+    final borderRadius = isTablet ? 16.0 : 16.r;
+    final iconBorderRadius = isTablet ? 12.0 : 12.r;
+    final iconSize = isTablet ? 28.0 : 26.sp;
+    final fontSize = isTablet ? 14.0 : 13.sp;
+    final spacing = isTablet ? 12.0 : 12.h;
 
     return GestureDetector(
       onTap: item.onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(20),
+        padding: EdgeInsets.all(padding),
         decoration: BoxDecoration(
           color: isDarkMode ? AppColors.surfaceAltDark : AppColors.surfaceLight,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(borderRadius),
           border: Border.all(
             color: Colors.transparent,
             width: 2,
@@ -69,25 +90,25 @@ class MenuGrid extends StatelessWidget {
           children: [
             // Icon Container
             Container(
-              width: 50,
-              height: 50,
+              width: iconContainerSize,
+              height: iconContainerSize,
               decoration: BoxDecoration(
                 gradient: AppColors.secondaryGradientLight,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(iconBorderRadius),
               ),
               child: Icon(
                 item.icon,
                 color: Colors.white,
-                size: 26,
+                size: iconSize,
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: spacing),
             // Label
             Text(
               item.label,
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: fontSize,
                 fontWeight: FontWeight.w600,
                 color: isDarkMode
                     ? AppColors.textPrimaryDark

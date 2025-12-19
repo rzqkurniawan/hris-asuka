@@ -7,6 +7,7 @@ import '../widgets/profile_cover_header.dart';
 import '../widgets/profile_menu_list.dart';
 import '../constants/app_colors.dart';
 import '../utils/page_transitions.dart';
+import '../utils/responsive_utils.dart';
 import '../providers/auth_provider.dart';
 import '../l10n/app_localizations.dart';
 import 'employee_data_screen.dart';
@@ -23,6 +24,12 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isTablet = Responsive.isTablet(context);
+    // Use fixed pixels for tablet, ScreenUtil for phone
+    final horizontalPadding = isTablet
+        ? Responsive.getHorizontalPadding(context)
+        : 20.w;
+    final verticalPadding = isTablet ? 20.0 : 20.h;
 
     return Scaffold(
       backgroundColor:
@@ -30,7 +37,10 @@ class ProfilePage extends StatelessWidget {
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const BouncingScrollPhysics(),
-          padding: EdgeInsets.all(20.w),
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
+          ),
           child: Consumer<AuthProvider>(
             builder: (context, authProvider, child) {
               final l10n = AppLocalizations.of(context);
@@ -62,16 +72,17 @@ class ProfilePage extends StatelessWidget {
                       .fadeIn(duration: 500.ms)
                       .slideY(begin: -0.1, end: 0),
 
-                  SizedBox(height: 24.h),
+                  SizedBox(height: isTablet ? 24.0 : 24.h),
 
                   // Section Title - Profile Menu
                   _buildSectionTitle(
                     l10n.get('profile_menu'),
                     Icons.menu_rounded,
                     isDarkMode,
+                    isTablet,
                   ).animate().fadeIn(duration: 400.ms, delay: 200.ms),
 
-                  SizedBox(height: 12.h),
+                  SizedBox(height: isTablet ? 12.0 : 12.h),
 
                   // Profile Menu List with animations
                   ProfileMenuList(
@@ -188,7 +199,7 @@ class ProfilePage extends StatelessWidget {
                       .fadeIn(duration: 500.ms, delay: 300.ms)
                       .slideY(begin: 0.1, end: 0),
 
-                  SizedBox(height: 110.h), // Space for bottom nav
+                  SizedBox(height: isTablet ? 110.0 : 110.h), // Space for bottom nav
                 ],
               );
             },
@@ -198,28 +209,35 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle(String title, IconData icon, bool isDarkMode) {
+  Widget _buildSectionTitle(String title, IconData icon, bool isDarkMode, bool isTablet) {
+    // Use fixed pixels for tablet, ScreenUtil for phone
+    final containerPadding = isTablet ? 10.0 : 8.w;
+    final borderRadius = isTablet ? 10.0 : 10.r;
+    final iconSize = isTablet ? 20.0 : 18.sp;
+    final spacingWidth = isTablet ? 10.0 : 10.w;
+    final fontSize = isTablet ? 18.0 : 16.sp;
+
     return Row(
       children: [
         Container(
-          padding: EdgeInsets.all(8.w),
+          padding: EdgeInsets.all(containerPadding),
           decoration: BoxDecoration(
             color: isDarkMode
                 ? AppColors.accent.withOpacity(0.2)
                 : AppColors.accent.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10.r),
+            borderRadius: BorderRadius.circular(borderRadius),
           ),
           child: Icon(
             icon,
             color: AppColors.accent,
-            size: 18.sp,
+            size: iconSize,
           ),
         ),
-        SizedBox(width: 10.w),
+        SizedBox(width: spacingWidth),
         Text(
           title,
           style: TextStyle(
-            fontSize: 16.sp,
+            fontSize: fontSize,
             fontWeight: FontWeight.w700,
             color:
                 isDarkMode ? AppColors.textPrimaryDark : AppColors.textPrimaryLight,

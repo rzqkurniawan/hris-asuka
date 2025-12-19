@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../constants/app_colors.dart';
+import '../utils/responsive_utils.dart';
 
 class FabBottomNavBar extends StatefulWidget {
   final int currentIndex;
@@ -52,7 +53,6 @@ class _FabBottomNavBarState extends State<FabBottomNavBar>
       curve: Curves.easeInOutCubic,
     );
 
-    // Initialize based on current index
     if (widget.currentIndex == 1) {
       _indicatorController.value = 1.0;
     }
@@ -94,115 +94,133 @@ class _FabBottomNavBarState extends State<FabBottomNavBar>
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final isTablet = Responsive.isTablet(context);
+
+    // Use fixed pixels for tablet, ScreenUtil for phone
+    final fabSize = isTablet ? 80.0 : 70.w;
+    final navBarHeight = isTablet ? 80.0 : 75.h;
+    final fabSpaceWidth = isTablet ? 100.0 : 80.w;
+    final navBarMargin = isTablet ? 80.0 : 24.w;
+    final containerHeight = isTablet ? 110.0 : 100.h;
+    final bottomMargin = isTablet ? 10.0 : 10.h;
+    final navBarBorderRadius = isTablet ? 32.0 : 32.r;
 
     return Container(
-      height: 100.h,
-      margin: EdgeInsets.only(bottom: 10.h),
+      height: containerHeight,
+      margin: EdgeInsets.only(bottom: bottomMargin),
       child: Stack(
         clipBehavior: Clip.none,
         alignment: Alignment.bottomCenter,
         children: [
           // Main Nav Bar Container
-          Container(
-            height: 75.h,
-            margin: EdgeInsets.symmetric(horizontal: 24.w),
-            decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(32.r),
-              boxShadow: [
-                BoxShadow(
-                  color: isDarkMode
-                      ? Colors.black.withOpacity(0.4)
-                      : const Color(0xFF0C4A6E).withOpacity(0.12),
-                  blurRadius: 30,
-                  offset: const Offset(0, 10),
-                ),
-              ],
-            ),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final trackWidth = constraints.maxWidth;
-                final sideWidth = (trackWidth - 80.w) / 2; // Space for FAB
+          Center(
+            child: Container(
+              height: navBarHeight,
+              margin: EdgeInsets.symmetric(horizontal: navBarMargin),
+              decoration: BoxDecoration(
+                color: isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+                borderRadius: BorderRadius.circular(navBarBorderRadius),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDarkMode
+                        ? Colors.black.withOpacity(0.4)
+                        : const Color(0xFF0C4A6E).withOpacity(0.12),
+                    blurRadius: 30,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final trackWidth = constraints.maxWidth;
+                  final sideWidth = (trackWidth - fabSpaceWidth) / 2;
 
-                return Stack(
-                  children: [
-                    // Sliding Indicator
-                    AnimatedBuilder(
-                      animation: _indicatorAnimation,
-                      builder: (context, child) {
-                        final startX = sideWidth / 2 - 30.w;
-                        final endX = trackWidth - sideWidth / 2 - 30.w;
-                        final currentX = startX + (endX - startX) * _indicatorAnimation.value;
+                  return Stack(
+                    children: [
+                      // Sliding Indicator
+                      AnimatedBuilder(
+                        animation: _indicatorAnimation,
+                        builder: (context, child) {
+                          final indicatorWidth = isTablet ? 65.0 : 60.w;
+                          final indicatorHeight = isTablet ? 65.0 : 60.h;
+                          final indicatorTop = isTablet ? 8.0 : 8.h;
+                          final indicatorBorderRadius = isTablet ? 20.0 : 20.r;
+                          final startX = sideWidth / 2 - indicatorWidth / 2;
+                          final endX = trackWidth - sideWidth / 2 - indicatorWidth / 2;
+                          final currentX = startX + (endX - startX) * _indicatorAnimation.value;
 
-                        return Positioned(
-                          left: currentX,
-                          top: 8.h,
-                          child: Container(
-                            width: 60.w,
-                            height: 60.h,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Color(0xFF0EA5E9),
-                                  Color(0xFF0284C7),
+                          return Positioned(
+                            left: currentX,
+                            top: indicatorTop,
+                            child: Container(
+                              width: indicatorWidth,
+                              height: indicatorHeight,
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Color(0xFF0EA5E9),
+                                    Color(0xFF0284C7),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(indicatorBorderRadius),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF0EA5E9).withOpacity(0.4),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 4),
+                                  ),
                                 ],
                               ),
-                              borderRadius: BorderRadius.circular(20.r),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF0EA5E9).withOpacity(0.4),
-                                  blurRadius: 15,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
+                            ),
+                          );
+                        },
+                      ),
+
+                      // Navigation Items
+                      Row(
+                        children: [
+                          // Left Side - Home
+                          SizedBox(
+                            width: sideWidth,
+                            child: _buildNavItem(
+                              icon: Icons.home_outlined,
+                              activeIcon: Icons.home_rounded,
+                              label: 'Home',
+                              index: 0,
+                              isDarkMode: isDarkMode,
+                              isTablet: isTablet,
                             ),
                           ),
-                        );
-                      },
-                    ),
 
-                    // Navigation Items
-                    Row(
-                      children: [
-                        // Left Side - Home
-                        SizedBox(
-                          width: sideWidth,
-                          child: _buildNavItem(
-                            icon: Icons.home_outlined,
-                            activeIcon: Icons.home_rounded,
-                            label: 'Home',
-                            index: 0,
-                            isDarkMode: isDarkMode,
+                          // Center Space for FAB
+                          SizedBox(width: fabSpaceWidth),
+
+                          // Right Side - Profile
+                          SizedBox(
+                            width: sideWidth,
+                            child: _buildNavItem(
+                              icon: Icons.person_outline_rounded,
+                              activeIcon: Icons.person_rounded,
+                              label: 'Profile',
+                              index: 1,
+                              hasNotification: widget.hasNotification,
+                              isDarkMode: isDarkMode,
+                              isTablet: isTablet,
+                            ),
                           ),
-                        ),
-
-                        // Center Space for FAB
-                        SizedBox(width: 80.w),
-
-                        // Right Side - Profile
-                        SizedBox(
-                          width: sideWidth,
-                          child: _buildNavItem(
-                            icon: Icons.person_outline_rounded,
-                            activeIcon: Icons.person_rounded,
-                            label: 'Profile',
-                            index: 1,
-                            hasNotification: widget.hasNotification,
-                            isDarkMode: isDarkMode,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
-              },
-            ),
-          )
-              .animate()
-              .fadeIn(duration: 400.ms)
-              .slideY(begin: 0.5, end: 0),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+            )
+                .animate()
+                .fadeIn(duration: 400.ms)
+                .slideY(begin: 0.5, end: 0),
+          ),
 
           // Center FAB
           Positioned(
@@ -220,8 +238,8 @@ class _FabBottomNavBarState extends State<FabBottomNavBar>
                   );
                 },
                 child: Container(
-                  width: 70.w,
-                  height: 70.w,
+                  width: fabSize,
+                  height: fabSize,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       begin: Alignment.topLeft,
@@ -249,8 +267,8 @@ class _FabBottomNavBarState extends State<FabBottomNavBar>
                     children: [
                       // Pulse effect ring
                       Container(
-                        width: 62.w,
-                        height: 62.w,
+                        width: isTablet ? 72.0 : 62.w,
+                        height: isTablet ? 72.0 : 62.w,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           border: Border.all(
@@ -273,13 +291,13 @@ class _FabBottomNavBarState extends State<FabBottomNavBar>
                           Icon(
                             Icons.fingerprint_rounded,
                             color: Colors.white,
-                            size: 28.sp,
+                            size: isTablet ? 32.0 : 28.sp,
                           ),
                           Text(
                             'Absen',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 9.sp,
+                              fontSize: isTablet ? 10.0 : 9.sp,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -305,9 +323,18 @@ class _FabBottomNavBarState extends State<FabBottomNavBar>
     required String label,
     required int index,
     required bool isDarkMode,
+    required bool isTablet,
     bool hasNotification = false,
   }) {
     final isActive = widget.currentIndex == index;
+
+    // Use fixed pixels for tablet
+    final paddingVertical = isTablet ? 12.0 : 12.h;
+    final iconSize = isTablet ? 28.0 : 26.sp;
+    final labelFontSize = isTablet ? 12.0 : 11.sp;
+    final spacingHeight = isTablet ? 4.0 : 4.h;
+    final badgeSize = isTablet ? 10.0 : 10.w;
+    final badgeRight = isTablet ? -4.0 : -4.w;
 
     return GestureDetector(
       onTap: () {
@@ -316,7 +343,7 @@ class _FabBottomNavBarState extends State<FabBottomNavBar>
       },
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 12.h),
+        padding: EdgeInsets.symmetric(vertical: paddingVertical),
         child: Stack(
           clipBehavior: Clip.none,
           alignment: Alignment.center,
@@ -329,7 +356,7 @@ class _FabBottomNavBarState extends State<FabBottomNavBar>
                   duration: const Duration(milliseconds: 200),
                   child: Icon(
                     isActive ? activeIcon : icon,
-                    size: 26.sp,
+                    size: iconSize,
                     color: isActive
                         ? Colors.white
                         : isDarkMode
@@ -337,11 +364,11 @@ class _FabBottomNavBarState extends State<FabBottomNavBar>
                             : AppColors.textSecondaryLight,
                   ),
                 ),
-                SizedBox(height: 4.h),
+                SizedBox(height: spacingHeight),
                 AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 200),
                   style: TextStyle(
-                    fontSize: 11.sp,
+                    fontSize: labelFontSize,
                     fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
                     color: isActive
                         ? Colors.white
@@ -357,10 +384,10 @@ class _FabBottomNavBarState extends State<FabBottomNavBar>
             if (hasNotification)
               Positioned(
                 top: 0,
-                right: -4.w,
+                right: badgeRight,
                 child: Container(
-                  width: 10.w,
-                  height: 10.w,
+                  width: badgeSize,
+                  height: badgeSize,
                   decoration: BoxDecoration(
                     color: AppColors.dangerLight,
                     shape: BoxShape.circle,
