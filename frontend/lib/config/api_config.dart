@@ -8,6 +8,7 @@ class ApiConfig {
   // Auth Endpoints
   static const String employees = '/auth/employees';
   static const String registerGetAvatar = '/auth/register/get-avatar';
+  static const String registerCompareFace = '/auth/register/compare-face';
   static const String register = '/auth/register';
   static const String login = '/auth/login';
   static const String logout = '/auth/logout';
@@ -15,6 +16,7 @@ class ApiConfig {
   static const String refreshToken = '/auth/refresh';
   static const String changePassword = '/auth/change-password';
   static const String forgotPasswordVerify = '/auth/forgot-password/verify-identity';
+  static const String forgotPasswordCompareFace = '/auth/forgot-password/compare-face';
   static const String forgotPasswordReset = '/auth/forgot-password/reset';
 
   // Profile Endpoints (future implementation)

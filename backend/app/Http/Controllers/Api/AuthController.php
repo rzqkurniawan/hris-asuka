@@ -136,6 +136,109 @@ class AuthController extends Controller
     }
 
     /**
+     * Compare face for registration (preview before submit)
+     * Request: employee_id, face_image (base64)
+     * Returns match status and confidence percentage
+     */
+    public function compareFaceForRegister(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'employee_id' => 'required|integer',
+            'face_image' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'match' => false,
+                'confidence' => 0,
+                'message' => 'Validation failed',
+            ], 422);
+        }
+
+        try {
+            // Get employee data
+            $employee = Employee::find($request->employee_id);
+
+            if (!$employee) {
+                return response()->json([
+                    'success' => false,
+                    'match' => false,
+                    'confidence' => 0,
+                    'message' => 'Data karyawan tidak ditemukan',
+                ]);
+            }
+
+            // Check if employee has photo
+            if (!$employee->employee_file_name) {
+                return response()->json([
+                    'success' => false,
+                    'match' => false,
+                    'confidence' => 0,
+                    'message' => 'Foto karyawan tidak tersedia',
+                ]);
+            }
+
+            // Get the path to the employee's stored photo
+            $employeePhotoPath = storage_path("app/photo-cache/{$employee->employee_file_name}");
+
+            if (!file_exists($employeePhotoPath)) {
+                Log::warning('Employee photo not found for registration face comparison', [
+                    'employee_id' => $employee->employee_id,
+                    'employee_file_name' => $employee->employee_file_name,
+                    'tried_path' => $employeePhotoPath,
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'match' => false,
+                    'confidence' => 0,
+                    'message' => 'Foto karyawan tidak ditemukan. Hubungi HRD.',
+                ]);
+            }
+
+            // Perform face comparison
+            $faceComparisonService = new FaceComparisonService();
+            $comparisonResult = $faceComparisonService->compareFaces(
+                $employeePhotoPath,
+                $request->face_image
+            );
+
+            if (!$comparisonResult['success']) {
+                return response()->json([
+                    'success' => false,
+                    'match' => false,
+                    'confidence' => 0,
+                    'message' => $comparisonResult['message'] ?? 'Gagal memverifikasi wajah',
+                ]);
+            }
+
+            $confidence = $comparisonResult['confidence'] ?? 0;
+            $isMatch = $comparisonResult['match'] ?? false;
+
+            return response()->json([
+                'success' => true,
+                'match' => $isMatch,
+                'confidence' => $confidence,
+                'message' => $isMatch
+                    ? "Wajah cocok dengan data karyawan ({$confidence}%)"
+                    : "Wajah tidak cocok ({$confidence}%)",
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error comparing face for registration', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'match' => false,
+                'confidence' => 0,
+                'message' => 'Gagal memverifikasi wajah: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
      * Register a new user
      * Request: employee_id (from c3ais), username, password
      * Note: NIK verification removed - face recognition prevents impersonation
@@ -725,6 +828,122 @@ class AuthController extends Controller
      * Request: username, nik
      * Returns: reset_token, employee_avatar_url
      */
+    /**
+     * Compare face for forgot password (preview before submit)
+     * Request: reset_token, face_image (base64)
+     * Returns match status and confidence percentage
+     */
+    public function compareFaceForReset(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'reset_token' => 'required|string',
+            'face_image' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'match' => false,
+                'confidence' => 0,
+                'message' => 'Validation failed',
+            ], 422);
+        }
+
+        try {
+            // Verify reset token
+            $cacheKey = "password_reset:{$request->reset_token}";
+            $resetData = \Cache::get($cacheKey);
+
+            if (!$resetData) {
+                return response()->json([
+                    'success' => false,
+                    'match' => false,
+                    'confidence' => 0,
+                    'message' => 'Token tidak valid atau sudah kedaluwarsa',
+                ]);
+            }
+
+            // Get employee data
+            $employee = Employee::find($resetData['employee_id']);
+
+            if (!$employee) {
+                return response()->json([
+                    'success' => false,
+                    'match' => false,
+                    'confidence' => 0,
+                    'message' => 'Data karyawan tidak ditemukan',
+                ]);
+            }
+
+            // Check if employee has photo
+            if (!$employee->employee_file_name) {
+                return response()->json([
+                    'success' => false,
+                    'match' => false,
+                    'confidence' => 0,
+                    'message' => 'Foto karyawan tidak tersedia',
+                ]);
+            }
+
+            // Get the path to the employee's stored photo
+            $employeePhotoPath = storage_path("app/photo-cache/{$employee->employee_file_name}");
+
+            if (!file_exists($employeePhotoPath)) {
+                Log::warning('Employee photo not found for reset face comparison', [
+                    'employee_id' => $employee->employee_id,
+                    'employee_file_name' => $employee->employee_file_name,
+                    'tried_path' => $employeePhotoPath,
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'match' => false,
+                    'confidence' => 0,
+                    'message' => 'Foto karyawan tidak ditemukan. Hubungi HRD.',
+                ]);
+            }
+
+            // Perform face comparison
+            $faceComparisonService = new FaceComparisonService();
+            $comparisonResult = $faceComparisonService->compareFaces(
+                $employeePhotoPath,
+                $request->face_image
+            );
+
+            if (!$comparisonResult['success']) {
+                return response()->json([
+                    'success' => false,
+                    'match' => false,
+                    'confidence' => 0,
+                    'message' => $comparisonResult['message'] ?? 'Gagal memverifikasi wajah',
+                ]);
+            }
+
+            $confidence = $comparisonResult['confidence'] ?? 0;
+            $isMatch = $comparisonResult['match'] ?? false;
+
+            return response()->json([
+                'success' => true,
+                'match' => $isMatch,
+                'confidence' => $confidence,
+                'message' => $isMatch
+                    ? "Wajah cocok dengan data karyawan ({$confidence}%)"
+                    : "Wajah tidak cocok ({$confidence}%)",
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error comparing face for reset', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'match' => false,
+                'confidence' => 0,
+                'message' => 'Gagal memverifikasi wajah: ' . $e->getMessage(),
+            ]);
+        }
+    }
+
     public function verifyIdentity(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -799,7 +1018,7 @@ class AuthController extends Controller
             }
 
             // Check if employee has avatar for face verification
-            if (!$employee->identity_file_name) {
+            if (!$employee->employee_file_name) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Foto karyawan tidak tersedia. Hubungi HRD untuk update foto.',
@@ -837,7 +1056,7 @@ class AuthController extends Controller
                     'reset_token' => $resetToken,
                     'expires_at' => $expiresAt->toISOString(),
                     'employee_name' => $employee->fullname,
-                    'avatar_url' => url("/api/employees/photo/{$employee->identity_file_name}"),
+                    'avatar_url' => url("/api/employees/photo/{$employee->employee_file_name}"),
                 ],
             ]);
         } catch (\Exception $e) {

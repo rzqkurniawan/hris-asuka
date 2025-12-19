@@ -132,6 +132,59 @@ class AuthService {
     }
   }
 
+  // Compare face for registration (preview before submit)
+  // Returns match status and confidence percentage
+  Future<FaceComparisonResult> compareFaceForRegister({
+    required int employeeId,
+    required String faceImage,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConfig.registerCompareFace,
+        data: {
+          'employee_id': employeeId,
+          'face_image': faceImage,
+        },
+      );
+
+      if (response.data == null) {
+        return FaceComparisonResult(
+          success: false,
+          match: false,
+          confidence: 0,
+          message: 'Empty response from server',
+        );
+      }
+
+      if (response.data is Map) {
+        return FaceComparisonResult.fromJson(
+            Map<String, dynamic>.from(response.data as Map));
+      } else {
+        return FaceComparisonResult(
+          success: false,
+          match: false,
+          confidence: 0,
+          message: 'Invalid response format',
+        );
+      }
+    } on ApiException catch (e) {
+      return FaceComparisonResult(
+        success: false,
+        match: false,
+        confidence: 0,
+        message: e.message,
+      );
+    } catch (e) {
+      DebugLogger.error('Compare face for register error', error: e, tag: 'AuthService');
+      return FaceComparisonResult(
+        success: false,
+        match: false,
+        confidence: 0,
+        message: 'Gagal memverifikasi wajah: ${e.toString()}',
+      );
+    }
+  }
+
   // Register new user with face verification
   // Note: NIK verification removed - face recognition prevents impersonation
   Future<Map<String, dynamic>> register({
@@ -366,6 +419,59 @@ class AuthService {
     }
   }
 
+  // Compare face for forgot password (preview before submit)
+  // Returns match status and confidence percentage
+  Future<FaceComparisonResult> compareFaceForReset({
+    required String resetToken,
+    required String faceImage,
+  }) async {
+    try {
+      final response = await _apiClient.post(
+        ApiConfig.forgotPasswordCompareFace,
+        data: {
+          'reset_token': resetToken,
+          'face_image': faceImage,
+        },
+      );
+
+      if (response.data == null) {
+        return FaceComparisonResult(
+          success: false,
+          match: false,
+          confidence: 0,
+          message: 'Empty response from server',
+        );
+      }
+
+      if (response.data is Map) {
+        return FaceComparisonResult.fromJson(
+            Map<String, dynamic>.from(response.data as Map));
+      } else {
+        return FaceComparisonResult(
+          success: false,
+          match: false,
+          confidence: 0,
+          message: 'Invalid response format',
+        );
+      }
+    } on ApiException catch (e) {
+      return FaceComparisonResult(
+        success: false,
+        match: false,
+        confidence: 0,
+        message: e.message,
+      );
+    } catch (e) {
+      DebugLogger.error('Compare face for reset error', error: e, tag: 'AuthService');
+      return FaceComparisonResult(
+        success: false,
+        match: false,
+        confidence: 0,
+        message: 'Gagal memverifikasi wajah: ${e.toString()}',
+      );
+    }
+  }
+
   // Reset password with face verification (Step 2)
   Future<void> resetPasswordWithFace({
     required String resetToken,
@@ -397,5 +503,42 @@ class AuthService {
       DebugLogger.error('Reset password error', error: e, tag: 'AuthService');
       rethrow;
     }
+  }
+}
+
+/// Face Comparison Result (server-side comparison)
+class FaceComparisonResult {
+  final bool success;
+  final bool match;
+  final double confidence;
+  final String message;
+
+  FaceComparisonResult({
+    required this.success,
+    required this.match,
+    required this.confidence,
+    required this.message,
+  });
+
+  factory FaceComparisonResult.fromJson(Map<String, dynamic> json) {
+    // Parse confidence safely
+    double confidence = 0;
+    if (json['confidence'] != null) {
+      final confValue = json['confidence'];
+      if (confValue is double) {
+        confidence = confValue;
+      } else if (confValue is int) {
+        confidence = confValue.toDouble();
+      } else if (confValue is String) {
+        confidence = double.tryParse(confValue) ?? 0;
+      }
+    }
+
+    return FaceComparisonResult(
+      success: json['success'] == true,
+      match: json['match'] == true,
+      confidence: confidence,
+      message: json['message']?.toString() ?? 'Unknown response',
+    );
   }
 }

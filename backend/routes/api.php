@@ -40,6 +40,7 @@ Route::prefix('auth')->group(function () {
     // Rate limit: 5 requests per minute for registration (prevent spam)
     Route::middleware('throttle:5,1')->group(function () {
         Route::post('/register/get-avatar', [AuthController::class, 'getEmployeeAvatarForRegister']);
+        Route::post('/register/compare-face', [AuthController::class, 'compareFaceForRegister']);
         Route::post('/register', [AuthController::class, 'register']);
     });
 
@@ -53,6 +54,7 @@ Route::prefix('auth')->group(function () {
         // Rate limit: 5 requests per minute for identity verification
         Route::middleware('throttle:5,1')->group(function () {
             Route::post('/verify-identity', [AuthController::class, 'verifyIdentity']);
+            Route::post('/compare-face', [AuthController::class, 'compareFaceForReset']);
         });
 
         // Rate limit: 3 requests per minute for password reset
