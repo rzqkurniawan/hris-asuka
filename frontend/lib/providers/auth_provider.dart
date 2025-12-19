@@ -64,7 +64,6 @@ class AuthProvider with ChangeNotifier {
   // Register new user
   Future<bool> register({
     required int employeeId,
-    required String nik,
     required String username,
     required String password,
     required String passwordConfirmation,
@@ -78,7 +77,6 @@ class AuthProvider with ChangeNotifier {
     try {
       final response = await _authService.register(
         employeeId: employeeId,
-        nik: nik,
         username: username,
         password: password,
         passwordConfirmation: passwordConfirmation,
