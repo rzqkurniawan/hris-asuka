@@ -368,10 +368,13 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
       return;
     }
 
-    if (_faceConfidence < 80) {
+    // Face quality check is now handled by server-side comparison
+    // The submit button is already disabled if _serverFaceResult?.match != true
+    // So we only need to check if server said face doesn't match
+    if (_serverFaceResult == null || !_serverFaceResult!.match) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Kualitas foto kurang baik. Silakan foto ulang.'),
+        SnackBar(
+          content: Text(_serverFaceResult?.message ?? 'Wajah tidak cocok dengan foto karyawan. Silakan foto ulang.'),
           backgroundColor: Colors.orange,
         ),
       );
