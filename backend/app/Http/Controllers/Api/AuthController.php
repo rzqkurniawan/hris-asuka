@@ -1106,7 +1106,7 @@ class AuthController extends Controller
 
             // Get employee data for face comparison
             $employee = Employee::find($tokenData['employee_id']);
-            if (!$employee || !$employee->identity_file_name) {
+            if (!$employee || !$employee->employee_file_name) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Foto karyawan tidak tersedia untuk verifikasi wajah.',
@@ -1115,13 +1115,13 @@ class AuthController extends Controller
 
             // Perform actual face comparison with employee's stored photo
             $faceComparisonService = new FaceComparisonService();
-            $employeePhotoPath = storage_path("app/photo-cache/{$employee->identity_file_name}");
+            $employeePhotoPath = storage_path("app/photo-cache/{$employee->employee_file_name}");
 
             // Check if photo exists
             if (!file_exists($employeePhotoPath)) {
                 Log::warning('Employee photo not found for password reset face comparison', [
                     'employee_id' => $employee->employee_id,
-                    'identity_file_name' => $employee->identity_file_name,
+                    'employee_file_name' => $employee->employee_file_name,
                 ]);
 
                 return response()->json([
