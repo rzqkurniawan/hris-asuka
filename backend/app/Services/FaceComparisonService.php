@@ -38,9 +38,15 @@ class FaceComparisonService
                 ];
             }
 
+            // Strip data URL prefix if exists (e.g., "data:image/jpeg;base64,")
+            $base64Clean = $image2Base64;
+            if (strpos($image2Base64, 'base64,') !== false) {
+                $base64Clean = explode('base64,', $image2Base64)[1];
+            }
+
             // Decode base64 and save to temp file
-            $image2Data = base64_decode($image2Base64);
-            if ($image2Data === false) {
+            $image2Data = base64_decode($base64Clean);
+            if ($image2Data === false || strlen($image2Data) < 100) {
                 return [
                     'success' => false,
                     'match' => false,
@@ -49,7 +55,8 @@ class FaceComparisonService
                 ];
             }
 
-            $tempFile = tempnam(sys_get_temp_dir(), 'face_compare_');
+            // Create temp file with proper extension for better image detection
+            $tempFile = tempnam(sys_get_temp_dir(), 'face_compare_') . '.jpg';
             file_put_contents($tempFile, $image2Data);
 
             try {
@@ -151,6 +158,6 @@ class FaceComparisonService
      */
     public function getMinConfidence(): float
     {
-        return 60.0; // 60% minimum similarity required (lowered for lighting/angle variance)
+        return 55.0; // 55% minimum similarity required (lowered for real-world lighting/angle variance)
     }
 }
