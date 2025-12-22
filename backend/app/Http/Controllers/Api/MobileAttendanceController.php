@@ -154,21 +154,21 @@ class MobileAttendanceController extends Controller
         try {
             $user = Auth::user();
 
-            // Get avatar from c3ais database
+            // Get avatar from c3ais database (use employee_file_name for face recognition, not identity_file_name which is KTP)
             $employee = DB::connection('c3ais')
                 ->table('ki_employee')
                 ->where('employee_id', $user->employee_id)
-                ->select('identity_file_name')
+                ->select('employee_file_name')
                 ->first();
 
-            if (!$employee || !$employee->identity_file_name) {
+            if (!$employee || !$employee->employee_file_name) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Employee avatar not found',
                 ], 404);
             }
 
-            $avatarPath = $employee->identity_file_name;
+            $avatarPath = $employee->employee_file_name;
 
             return response()->json([
                 'success' => true,
