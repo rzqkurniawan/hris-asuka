@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../constants/app_colors.dart';
 import '../models/attendance_model.dart';
 import '../services/attendance_service.dart';
+import '../utils/toast_utils.dart';
 
 class AttendanceDetailPage extends StatefulWidget {
   final int month;
@@ -56,12 +57,13 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
     } catch (e) {
       setState(() {
         isLoading = false;
-        errorMessage = e.toString();
+        errorMessage = 'Data absensi belum tersedia untuk periode ini';
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load attendance detail: $e')),
+        ToastUtils.showError(
+          context,
+          'Data absensi belum tersedia untuk periode ini',
         );
       }
     }
@@ -117,14 +119,84 @@ class _AttendanceDetailPageState extends State<AttendanceDetailPage> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                _buildQuickSummary(isDarkMode),
-                Expanded(
-                  child: _buildAttendanceTable(isDarkMode),
+          : errorMessage != null
+              ? _buildErrorState(isDarkMode)
+              : Column(
+                  children: [
+                    _buildQuickSummary(isDarkMode),
+                    Expanded(
+                      child: _buildAttendanceTable(isDarkMode),
+                    ),
+                  ],
                 ),
-              ],
+    );
+  }
+
+  Widget _buildErrorState(bool isDarkMode) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.error.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.event_busy,
+                size: 64,
+                color: AppColors.error,
+              ),
             ),
+            const SizedBox(height: 24),
+            Text(
+              'Data Tidak Tersedia',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: isDarkMode
+                    ? AppColors.textPrimaryDark
+                    : AppColors.textPrimaryLight,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              errorMessage ?? 'Data absensi belum tersedia untuk periode ini',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: isDarkMode
+                    ? AppColors.textSecondaryDark
+                    : AppColors.textSecondaryLight,
+              ),
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Kembali'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isDarkMode
+                    ? AppColors.primaryDark
+                    : AppColors.primaryLight,
+                foregroundColor: AppColors.overlayLight,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
