@@ -65,33 +65,22 @@ class _ChangePasswordBottomSheetState extends State<ChangePasswordBottomSheet> {
       return l10n.get('new_password_required');
     }
 
-    if (value.length < 12) {
-      return l10n.get('password_min_12');
+    if (value.length < 6) {
+      return l10n.get('password_min_6');
     }
 
     if (value.length > 128) {
       return l10n.get('password_max_128');
     }
 
+    // Must contain at least one uppercase letter
     if (!RegExp(r'[A-Z]').hasMatch(value)) {
       return l10n.get('password_need_uppercase');
     }
 
-    if (!RegExp(r'[a-z]').hasMatch(value)) {
-      return l10n.get('password_need_lowercase');
-    }
-
+    // Must contain at least one number
     if (!RegExp(r'\d').hasMatch(value)) {
       return l10n.get('password_need_number');
-    }
-
-    if (!RegExp(r'[@$!%*?&#^()_+=\[\]{};:' "'" r'",.<>\/\\|`~-]')
-        .hasMatch(value)) {
-      return l10n.get('password_need_special');
-    }
-
-    if (_commonPasswords.contains(value.toLowerCase())) {
-      return l10n.get('password_too_common');
     }
 
     if (value == _currentPasswordController.text) {
@@ -223,7 +212,7 @@ class _ChangePasswordBottomSheetState extends State<ChangePasswordBottomSheet> {
                           const SizedBox(width: AppSpacing.sm),
                           Expanded(
                             child: Text(
-                              l10n.get('password_min_12_chars'),
+                              l10n.get('password_requirements_simple'),
                               style: Theme.of(context)
                                   .textTheme
                                   .bodySmall

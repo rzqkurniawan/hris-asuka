@@ -536,38 +536,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             if (value == null || value.isEmpty) {
                               return l10n.fieldRequired;
                             }
-                            if (value.length < 12) {
-                              return l10n.get('password_min_12');
+                            if (value.length < 6) {
+                              return l10n.get('password_min_6');
                             }
                             if (value.length > 128) {
                               return l10n.get('password_max_128');
                             }
-                            // Must contain uppercase
+                            // Must contain at least one uppercase letter
                             if (!RegExp(r'[A-Z]').hasMatch(value)) {
                               return l10n.get('password_need_uppercase');
                             }
-                            // Must contain lowercase
-                            if (!RegExp(r'[a-z]').hasMatch(value)) {
-                              return l10n.get('password_need_lowercase');
-                            }
-                            // Must contain number
+                            // Must contain at least one number
                             if (!RegExp(r'\d').hasMatch(value)) {
                               return l10n.get('password_need_number');
-                            }
-                            // Must contain special character
-                            if (!RegExp(r'[@$!%*?&#^()_+=\[\]{};:' "'" r'",.<>\/\\|`~-]').hasMatch(value)) {
-                              return l10n.get('password_need_special');
-                            }
-                            // Check for common passwords
-                            final commonPasswords = [
-                              '123456789012',
-                              'password1234',
-                              'password12345',
-                              'qwerty123456',
-                              'admin1234567',
-                            ];
-                            if (commonPasswords.contains(value.toLowerCase())) {
-                              return l10n.get('password_too_common');
                             }
                             return null;
                           },
@@ -606,7 +587,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      l10n.get('password_requirements_detail'),
+                                      l10n.get('password_requirements_simple'),
                                       style: TextStyle(
                                         fontSize: 11,
                                         color: isDark

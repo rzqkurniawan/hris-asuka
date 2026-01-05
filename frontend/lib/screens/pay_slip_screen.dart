@@ -44,8 +44,17 @@ class _PaySlipScreenState extends State<PaySlipScreen> {
     try {
       final periodsResponse = await _paySlipService.getAvailablePeriods();
 
+      // Ensure current year is always included
+      final currentYear = DateTime.now().year.toString();
+      List<String> yearsList = List<String>.from(periodsResponse.availableYears);
+      if (!yearsList.contains(currentYear)) {
+        yearsList.insert(0, currentYear);
+      }
+      // Sort years descending
+      yearsList.sort((a, b) => int.parse(b).compareTo(int.parse(a)));
+
       setState(() {
-        years = periodsResponse.availableYears;
+        years = yearsList;
         months = periodsResponse.availableMonths.isNotEmpty
             ? periodsResponse.availableMonths
             : [

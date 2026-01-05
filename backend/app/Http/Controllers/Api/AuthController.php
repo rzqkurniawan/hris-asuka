@@ -258,10 +258,10 @@ class AuthController extends Controller
             'password' => [
                 'required',
                 'string',
-                'min:12',
+                'min:6',
                 'max:128',
                 'confirmed',
-                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+=\[\]{};:\'",.<>\/\\|`~-]).+$/', // Uppercase, lowercase, number, special char
+                'regex:/^(?=.*[A-Z])(?=.*\d).+$/', // Uppercase and number required
             ],
             // Face verification fields (required for registration)
             'face_image' => 'required|string',
@@ -271,8 +271,8 @@ class AuthController extends Controller
             'username.regex' => 'Username hanya boleh mengandung huruf dan angka',
             'username.min' => 'Username minimal 6 karakter',
             'username.max' => 'Username maksimal 12 karakter',
-            'password.regex' => 'Password harus mengandung huruf besar, huruf kecil, angka, dan karakter khusus (!@#$%^&*)',
-            'password.min' => 'Password minimal 12 karakter',
+            'password.regex' => 'Password harus mengandung minimal 1 huruf besar (A-Z) dan 1 angka (0-9)',
+            'password.min' => 'Password minimal 6 karakter',
             'password.max' => 'Password maksimal 128 karakter',
             'face_image.required' => 'Verifikasi wajah diperlukan untuk registrasi',
             'face_confidence.min' => 'Tingkat kecocokan wajah minimal 80%',
@@ -725,15 +725,15 @@ class AuthController extends Controller
             'new_password' => [
                 'required',
                 'string',
-                'min:12',
+                'min:6',
                 'max:128',
                 'confirmed',
                 'different:current_password',
-                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+=\[\]{};:\'",.<>\/\\|`~-]).+$/',
+                'regex:/^(?=.*[A-Z])(?=.*\d).+$/',
             ],
         ], [
-            'new_password.regex' => 'Password harus mengandung huruf besar, huruf kecil, angka, dan karakter khusus (!@#$%^&*)',
-            'new_password.min' => 'Password minimal 12 karakter',
+            'new_password.regex' => 'Password harus mengandung minimal 1 huruf besar (A-Z) dan 1 angka (0-9)',
+            'new_password.min' => 'Password minimal 6 karakter',
             'new_password.max' => 'Password maksimal 128 karakter',
             'new_password.different' => 'Password baru harus berbeda dengan password lama',
             'new_password.confirmed' => 'Konfirmasi password tidak cocok',
@@ -1065,14 +1065,14 @@ class AuthController extends Controller
             'new_password' => [
                 'required',
                 'string',
-                'min:12',
+                'min:6',
                 'max:128',
                 'confirmed',
-                'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#^()_+=\[\]{};:\'",.<>\/\\|`~-]).+$/',
+                'regex:/^(?=.*[A-Z])(?=.*\d).+$/',
             ],
         ], [
-            'new_password.regex' => 'Password harus mengandung huruf besar, huruf kecil, angka, dan karakter khusus (!@#$%^&*)',
-            'new_password.min' => 'Password minimal 12 karakter',
+            'new_password.regex' => 'Password harus mengandung minimal 1 huruf besar (A-Z) dan 1 angka (0-9)',
+            'new_password.min' => 'Password minimal 6 karakter',
             'new_password.max' => 'Password maksimal 128 karakter',
             'new_password.confirmed' => 'Konfirmasi password tidak cocok',
         ]);

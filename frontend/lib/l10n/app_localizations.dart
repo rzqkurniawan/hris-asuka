@@ -563,16 +563,19 @@ const Map<String, String> _idTranslations = {
 
   // Change Password Validation
   'new_password_required': 'Password baru wajib diisi',
+  'password_min_6': 'Password minimal 6 karakter',
   'password_min_12': 'Password minimal 12 karakter',
   'password_max_128': 'Password maksimal 128 karakter',
   'password_need_uppercase': 'Password harus ada huruf besar (A-Z)',
   'password_need_lowercase': 'Password harus ada huruf kecil (a-z)',
   'password_need_number': 'Password harus ada angka (0-9)',
+  'password_need_letter': 'Password harus ada huruf (a-z atau A-Z)',
   'password_need_special': 'Password harus ada karakter khusus (!@#\$%^&*)',
   'password_too_common': 'Password terlalu umum',
   'password_must_different': 'Password baru harus berbeda dengan password lama',
   'password_changed_success': 'Password berhasil diubah',
   'password_change_failed': 'Gagal mengubah password',
+  'password_requirements_simple': '• Minimal 6 karakter\n• Huruf besar (A-Z) minimal 1\n• Angka (0-9) minimal 1\n• Karakter khusus opsional',
 
   // Attendance
   'in_label': 'Masuk',
@@ -920,16 +923,19 @@ const Map<String, String> _enTranslations = {
 
   // Change Password Validation
   'new_password_required': 'New password is required',
+  'password_min_6': 'Password must be at least 6 characters',
   'password_min_12': 'Password must be at least 12 characters',
   'password_max_128': 'Password must be at most 128 characters',
   'password_need_uppercase': 'Password must contain uppercase letter (A-Z)',
   'password_need_lowercase': 'Password must contain lowercase letter (a-z)',
   'password_need_number': 'Password must contain number (0-9)',
+  'password_need_letter': 'Password must contain letter (a-z or A-Z)',
   'password_need_special': 'Password must contain special character (!@#\$%^&*)',
   'password_too_common': 'Password is too common',
   'password_must_different': 'New password must be different from current password',
   'password_changed_success': 'Password changed successfully',
   'password_change_failed': 'Failed to change password',
+  'password_requirements_simple': '• Minimum 6 characters\n• Uppercase letter (A-Z) at least 1\n• Number (0-9) at least 1\n• Special character optional',
 
   // Attendance
   'in_label': 'In',

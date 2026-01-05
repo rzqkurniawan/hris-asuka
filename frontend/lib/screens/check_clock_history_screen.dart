@@ -182,8 +182,7 @@ class _CheckClockHistoryScreenState extends State<CheckClockHistoryScreen> {
                                   dropdownColor: isDarkMode
                                       ? AppColors.cardDark
                                       : Colors.white,
-                                  items: List.generate(5, (index) {
-                                    final year = DateTime.now().year - index;
+                                  items: _generateYearsList().map((year) {
                                     return DropdownMenuItem(
                                       value: year,
                                       child: Text(
@@ -195,7 +194,7 @@ class _CheckClockHistoryScreenState extends State<CheckClockHistoryScreen> {
                                         ),
                                       ),
                                     );
-                                  }),
+                                  }).toList(),
                                   onChanged: (value) {
                                     setModalState(() => tempYear = value!);
                                   },
@@ -272,6 +271,13 @@ class _CheckClockHistoryScreenState extends State<CheckClockHistoryScreen> {
     } catch (e) {
       return '--';
     }
+  }
+
+  /// Generate list of years from current year going back 5 years
+  /// Always ensures current year is included at the top
+  List<int> _generateYearsList() {
+    final currentYear = DateTime.now().year;
+    return List.generate(6, (index) => currentYear - index);
   }
 
   @override
