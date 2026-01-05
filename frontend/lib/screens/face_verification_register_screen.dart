@@ -941,10 +941,10 @@ class _FaceVerificationRegisterScreenState
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: () {
-                  Navigator.of(context).pop(); // Close dialog
-                  // Navigate back to login screen and return success
-                  Navigator.of(context).pop(true); // Back to register
-                  Navigator.of(context).pop(true); // Back to login with result
+                  // Close dialog first
+                  Navigator.of(context).pop();
+                  // Navigate back to login screen, removing all screens in between
+                  Navigator.of(context).popUntil((route) => route.isFirst);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green,

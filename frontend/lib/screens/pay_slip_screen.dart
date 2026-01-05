@@ -53,24 +53,21 @@ class _PaySlipScreenState extends State<PaySlipScreen> {
       // Sort years descending
       yearsList.sort((a, b) => int.parse(b).compareTo(int.parse(a)));
 
+      // Sort months in correct order (January - December)
+      final monthOrder = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      List<String> sortedMonths = periodsResponse.availableMonths.isNotEmpty
+          ? List<String>.from(periodsResponse.availableMonths)
+          : List<String>.from(monthOrder);
+
+      // Sort by month order
+      sortedMonths.sort((a, b) => monthOrder.indexOf(a).compareTo(monthOrder.indexOf(b)));
+
       setState(() {
         years = yearsList;
-        months = periodsResponse.availableMonths.isNotEmpty
-            ? periodsResponse.availableMonths
-            : [
-                'January',
-                'February',
-                'March',
-                'April',
-                'May',
-                'June',
-                'July',
-                'August',
-                'September',
-                'October',
-                'November',
-                'December'
-              ];
+        months = sortedMonths;
         isLoadingPeriods = false;
       });
     } catch (e) {

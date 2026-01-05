@@ -123,6 +123,7 @@ class _CheckClockHistoryScreenState extends State<CheckClockHistoryScreen> {
                                 child: DropdownButton<int>(
                                   value: tempMonth,
                                   isExpanded: true,
+                                  menuMaxHeight: 300, // Ensure dropdown is scrollable
                                   dropdownColor: isDarkMode
                                       ? AppColors.cardDark
                                       : Colors.white,
