@@ -84,26 +84,15 @@ class _AttendanceSummaryPageState extends State<AttendanceSummaryPage> {
   }
 
   void _updateAvailableMonths() {
-    // Get months from periods or use all months for current year
-    availableMonths = periodsByYear[selectedYear] ?? [];
+    // Always show all 12 months for any year
+    // Data availability will be handled when loading summary
+    availableMonths = List.generate(12, (i) => i + 1);
 
-    // If no months available (e.g., new year), show all months up to current
-    if (availableMonths.isEmpty) {
-      final now = DateTime.now();
-      if (selectedYear == now.year) {
-        // For current year, show months up to current month
-        availableMonths = List.generate(now.month, (i) => i + 1);
-      } else if (selectedYear > now.year) {
-        // For future year, show January only
-        availableMonths = [1];
-      } else {
-        // For past years without data, show all months
-        availableMonths = List.generate(12, (i) => i + 1);
-      }
-    }
-
-    // Set initial selected month if not available
-    if (availableMonths.isNotEmpty && !availableMonths.contains(selectedMonth)) {
+    // Set initial selected month to current month if selecting current year
+    final now = DateTime.now();
+    if (selectedYear == now.year && !availableMonths.contains(selectedMonth)) {
+      selectedMonth = now.month;
+    } else if (!availableMonths.contains(selectedMonth)) {
       selectedMonth = availableMonths.first;
     }
   }
