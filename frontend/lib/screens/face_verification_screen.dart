@@ -304,9 +304,10 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
       // Calculate face confidence based on detection quality
       double confidence = _calculateFaceConfidence(face);
 
-      // Read image bytes and convert to base64
+      // Compress image to reduce file size (fixes Samsung S24 FE and high-res camera issues)
       final bytes = await imageFile.readAsBytes();
-      final base64Image = base64Encode(bytes);
+      final compressedBytes = await _compressImage(bytes);
+      final base64Image = base64Encode(compressedBytes);
 
       setState(() {
         _capturedImage = imageFile;
@@ -1121,8 +1122,10 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
         return;
       }
 
+      // Compress image to reduce file size (fixes Samsung S24 FE and high-res camera issues)
       final bytes = await imageFile.readAsBytes();
-      final base64Image = base64Encode(bytes);
+      final compressedBytes = await _compressImage(bytes);
+      final base64Image = base64Encode(compressedBytes);
 
       setState(() {
         _capturedImage = imageFile;
@@ -1141,6 +1144,47 @@ class _FaceVerificationScreenState extends State<FaceVerificationScreen>
         _livenessVerified = false;
         _errorMessage = 'Gagal mengambil foto: ${e.toString()}';
       });
+    }
+  }
+
+  /// Compress image to reduce file size for upload
+  /// Resizes to max 1024px and compresses to JPEG quality 85%
+  Future<Uint8List> _compressImage(Uint8List bytes) async {
+    try {
+      final decodedImage = img.decodeImage(bytes);
+      if (decodedImage == null) {
+        return bytes; // Return original if decode fails
+      }
+
+      // Calculate new dimensions (max 1024px, maintain aspect ratio)
+      int targetWidth = decodedImage.width;
+      int targetHeight = decodedImage.height;
+      const int maxDimension = 1024;
+
+      if (targetWidth > maxDimension || targetHeight > maxDimension) {
+        if (targetWidth > targetHeight) {
+          targetHeight = (targetHeight * maxDimension / targetWidth).round();
+          targetWidth = maxDimension;
+        } else {
+          targetWidth = (targetWidth * maxDimension / targetHeight).round();
+          targetHeight = maxDimension;
+        }
+      }
+
+      // Resize image
+      final resizedImage = img.copyResize(
+        decodedImage,
+        width: targetWidth,
+        height: targetHeight,
+        interpolation: img.Interpolation.linear,
+      );
+
+      // Encode to JPEG with 85% quality
+      final compressedBytes = img.encodeJpg(resizedImage, quality: 85);
+      return Uint8List.fromList(compressedBytes);
+    } catch (e) {
+      // Return original bytes if compression fails
+      return bytes;
     }
   }
 
