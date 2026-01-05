@@ -44,8 +44,17 @@ class _AttendanceSummaryPageState extends State<AttendanceSummaryPage> {
       // Load available periods first
       final periodsResponse = await _attendanceService.getAvailablePeriods();
 
+      // Ensure current year is always included
+      final currentYear = DateTime.now().year;
+      List<int> yearsList = List<int>.from(periodsResponse.availableYears);
+      if (!yearsList.contains(currentYear)) {
+        yearsList.insert(0, currentYear);
+      }
+      // Sort years descending
+      yearsList.sort((a, b) => b.compareTo(a));
+
       setState(() {
-        availableYears = periodsResponse.availableYears;
+        availableYears = yearsList;
         periodsByYear = periodsResponse.periodsByYear;
 
         // Set initial selected year if not available
@@ -75,7 +84,23 @@ class _AttendanceSummaryPageState extends State<AttendanceSummaryPage> {
   }
 
   void _updateAvailableMonths() {
+    // Get months from periods or use all months for current year
     availableMonths = periodsByYear[selectedYear] ?? [];
+
+    // If no months available (e.g., new year), show all months up to current
+    if (availableMonths.isEmpty) {
+      final now = DateTime.now();
+      if (selectedYear == now.year) {
+        // For current year, show months up to current month
+        availableMonths = List.generate(now.month, (i) => i + 1);
+      } else if (selectedYear > now.year) {
+        // For future year, show January only
+        availableMonths = [1];
+      } else {
+        // For past years without data, show all months
+        availableMonths = List.generate(12, (i) => i + 1);
+      }
+    }
 
     // Set initial selected month if not available
     if (availableMonths.isNotEmpty && !availableMonths.contains(selectedMonth)) {

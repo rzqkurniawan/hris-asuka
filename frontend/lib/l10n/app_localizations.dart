@@ -486,7 +486,7 @@ const Map<String, String> _idTranslations = {
 
   // Profile Menu
   'profile_menu': 'Menu Profil',
-  'check_clock_history': 'Riwayat Absensi',
+  'check_clock_history': 'Riwayat Absensi Mobile',
   'attendance_records': 'Catatan kehadiran',
   'personal_info': 'Informasi pribadi',
   'family_info': 'Informasi keluarga',
@@ -844,7 +844,7 @@ const Map<String, String> _enTranslations = {
 
   // Profile Menu
   'profile_menu': 'Profile Menu',
-  'check_clock_history': 'Attendance History',
+  'check_clock_history': 'Mobile Attendance History',
   'attendance_records': 'Attendance records',
   'personal_info': 'Personal information',
   'family_info': 'Family information',
